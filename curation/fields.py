@@ -1,11 +1,13 @@
 from django.db.models.fields.related import ForeignKey
 
+
 class CuratedForeignKey(ForeignKey):
     """
     A ForeignKey that gets a list of the __dict__ keys and field names of the
     related model on load. It saves this list to the '_proxy_attrs' attribute
     of its parent model _meta attribute.
     """
+
     def contribute_to_class(self, cls, name):
         super(CuratedForeignKey, self).contribute_to_class(cls, name)
         # Throw a TypeError if there is more than one CuratedForeignKey in
@@ -35,3 +37,11 @@ class CuratedForeignKey(ForeignKey):
         proxy_attrs = set([f.name for f in cls._meta.fields])
         proxy_attrs = proxy_attrs.union([k for k in cls.__dict__ if k not in skips])
         setattr(related.model._meta, '_proxy_attrs', proxy_attrs)
+
+
+try:
+    from south.modelsinspector import add_introspection_rules
+except ImportError:
+    pass
+else:
+    add_introspection_rules([], ["^curation\.fields\.CuratedForeignKey"])
