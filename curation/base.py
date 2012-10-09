@@ -1,9 +1,7 @@
 from warnings import warn
 
 from django.db.models.base import ModelBase
-from django.db.models.fields import FieldDoesNotExist
 
-from .fields import CuratedForeignKey
 
 class CuratedItemModelBase(ModelBase):
     """

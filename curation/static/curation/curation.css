@@ -1,0 +1,11 @@
+input.curated-object-id {
+    width: 10em;
+}
+
+.curated-object-id-row > div > .span-flexible {
+    padding-left: 130px;
+}
+
+.curated-object-id-row > div > .span-flexible > input.curated-object-id {
+    margin-left: -130px;
+}
