@@ -504,6 +504,7 @@ class ContentTypeSourceField(models.ForeignKey):
         if ct_choices is not None:
             self.ct_choices = ContentTypeSourceChoices(ct_choices, self)
             kwargs['choices'] = ContentTypeIdChoices(self.ct_choices)
+        kwargs.pop('to', None)
         self.source_field_name = kwargs.pop('source_field', None)
         super(ContentTypeSourceField, self).__init__(ContentType, *args, **kwargs)
 
