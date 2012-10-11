@@ -1,5 +1,6 @@
 from collections import Mapping
 
+from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.forms import widgets
 from django.forms.util import flatatt
@@ -9,11 +10,16 @@ from django.utils.html import conditional_escape
 
 class SourceSelect(widgets.Select):
 
-    class Media:
-        js = (settings.STATIC_URL + 'curation/curation.js',)
-        css = {
-            'all': (settings.STATIC_URL + 'curation/curation.css',),
-        }
+    def _media(self):
+        media = widgets.Media()
+        media.add_js((
+            reverse('curation_content_type_list'),
+            settings.STATIC_URL + 'curation/curated_related_generic.js',
+            settings.STATIC_URL + 'curation/curation.js',))
+        media.add_css({
+                'all': (settings.STATIC_URL + 'curation/curation.css',)})
+        return media
+    media = property(_media)
 
     def render_option(self, selected_choices, option_value, option_label):
         if isinstance(option_value, Mapping) and 'value' in option_value:
