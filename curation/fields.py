@@ -305,6 +305,7 @@ class ContentTypeSourceDescriptor(ReverseSingleRelatedObjectDescriptor):
 
     def __init__(self, field_with_rel):
         self.field = field_with_rel
+        self.cache_name = self.field.get_cache_name()
 
     def __get__(self, instance, instance_type=None):
         return super(ContentTypeSourceDescriptor, self).__get__(instance, instance_type)
