@@ -119,17 +119,29 @@ class CuratedItem(models.Model):
             if val is not None and val != '':
                 return val
 
-        proxy_attrs = None
+        proxy_attrs = []
 
         opts = self._meta
 
         curated_field_name = getattr(opts, '_curated_proxy_field_name', None)
         is_generic_curated_field = getattr(opts, '_curated_field_is_generic', False)
 
-        if is_generic_curated_field:
-            proxy_attrs = self.__dict__.get('_proxy_attrs', None)
+        is_cache_attr = (attr[0] == '_' and attr.endswith('_cache'))
 
-        if proxy_attrs is None:
+        if is_cache_attr:
+            try:
+                return self.__dict__[attr]
+            except KeyError:
+                pass
+        elif is_generic_curated_field:
+            try:
+                proxy_attrs = self.__dict__['_proxy_attrs']
+            except KeyError:
+                # Call __get__() on CuratedGenericForeignKey descriptor, which
+                # populates _proxy_attrs by calling contribute_to_instance()
+                self.__getattribute__(curated_field_name)
+                proxy_attrs = self.__dict__.get('_proxy_attrs', [])
+        else:
             proxy_attrs = getattr(self._meta, '_proxy_attrs', [])
 
         if attr in proxy_attrs:
