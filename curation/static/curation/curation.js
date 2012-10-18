@@ -161,33 +161,37 @@
         }, 12);
     };
 
+    $.fn.curated_content_type = function() {
+        var $this = (this.length > 1) ? $(this[0]) : this;
+        var $fkField = $this.curationFkField();
+        if (typeof($fkField) != 'object' || !$fkField.length) {
+            return;
+        }
+        $fkField.addClass('curated-object-id');
+
+        var fkFieldName = $this.data('fkFieldName');
+        var rowSelector = '.' + fkFieldName + '.row' + ',' +
+                          '.' + fkFieldName + '.grp-row';
+        $fkField.closest(rowSelector).addClass('curated-object-id-row');
+
+        toggleContentTypeFields($this);
+        // Bind to the focus event to store the previous value
+        $this.bind("focus", function(evt) {
+            var $select = $(evt.target);
+            var selectValue = $select.val();
+            $select.data('previousValue', selectValue);
+        });
+        $this.bind("change", function(evt) {
+            toggleContentTypeFields($(evt.target));
+        });
+
+        $this.curated_related_generic();
+    };
+
     $(document).ready(function() {
         // Iterate through curated content_type select elements
-        $('.curated-content-type-select').filter(function(index, element) {
-            var $element = $(element);
-            var $fkField = $element.curationFkField();
-            if (typeof($fkField) != 'object' || !$fkField.length) {
-                return;
-            }
-            $fkField.addClass('curated-object-id');
-
-            var fkFieldName = $element.data('fkFieldName');
-            var rowSelector = '.' + fkFieldName + '.row' + ',' +
-                              '.' + fkFieldName + '.grp-row';
-            $fkField.closest(rowSelector).addClass('curated-object-id-row');
-
-            toggleContentTypeFields($element);
-            // Bind to the focus event to store the previous value
-            $element.bind("focus", function(evt) {
-                var $select = $(evt.target);
-                var selectValue = $select.val();
-                $select.data('previousValue', selectValue);
-            });
-            $element.bind("change", function(evt) {
-                toggleContentTypeFields($(evt.target));
-            });
-
-            $element.curated_related_generic();
+        $('.curated-content-type-select').each(function(index, element) {
+            $(element).curated_content_type();
         });
     });
 })();
