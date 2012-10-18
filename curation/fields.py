@@ -367,11 +367,6 @@ class ContentTypeIdDescriptor(object):
 
         instance.__dict__[self.field.attname] = value
 
-        try:
-            setattr(instance, '_ctid_call_count', getattr(instance, '_ctid_call_count') + 1)
-        except AttributeError:
-            setattr(instance, '_ctid_call_count', 1)
-
         if isinstance(value, (int, long)):
             value = ContentType.objects.get_for_id(value)
         self.__dict__['ct_descriptor'].__set__(instance, value)
@@ -395,13 +390,8 @@ class SourceFieldDescriptor(object):
     def __get__(self, instance, instance_type=None):
         if hasattr(self.field, '__get__'):
             value = self.field.__get__(instance)
-            setattr(self, 'value', value)
         else:
-            try:
-                value = getattr(self, 'value')
-            except AttributeError:
-                setattr(self, 'value', None)
-                value = None
+            value = instance.__dict__.get(self.field.attname)
         return value
 
     def __set__(self, instance, value):
@@ -409,9 +399,7 @@ class SourceFieldDescriptor(object):
             self.field.__set__(instance, value)
             # Presumably the descriptor set the attname in the dict
             value = instance.__dict__.get(self.field.attname)
-            setattr(self, 'value', value)
         else:
-            setattr(self, 'value', value)
             instance.__dict__[self.field.attname] = value
 
         if self.ct_field.attname not in instance.__dict__:
