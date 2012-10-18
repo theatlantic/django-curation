@@ -13,6 +13,11 @@ class CuratedItemModelBase(ModelBase):
         # works with super()
         model_cls = super(CuratedItemModelBase, cls).__new__(cls, name, bases, attrs)
 
+        parents = [b for b in bases if isinstance(b, ModelBase)]
+        if not parents:
+            # If this isn't a subclass of Model, don't do anything special.
+            return model_cls
+
         if model_cls._meta.abstract:
             return model_cls
 
