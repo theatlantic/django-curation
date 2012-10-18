@@ -7,9 +7,11 @@ except ImportError:
     use_setuptools()
     from setuptools import setup, find_packages
 
+import curation
+
 setup(
     name='django-curation',
-    version="1.0",
+    version=curation.__version__,
     description='A model used for curating other models and proxying their attributes',
     author='The Atlantic',
     author_email='atmoprogrammers@theatlantic.com',
