@@ -16,6 +16,19 @@ class GenericForeignKey(generic.GenericForeignKey):
     def contribute_to_class(self, cls, name):
         super(GenericForeignKey, self).contribute_to_class(cls, name)
         signals.post_init.connect(self.instance_post_init, sender=cls)
+        signals.class_prepared.connect(self.relate_fk_field_to_ct_field, sender=cls)
+
+    def relate_fk_field_to_ct_field(self, sender, **kwargs):
+        """
+        Handles the class_prepared signal; adds an attribute `fk_field` to
+        the content_type Field object containing the field name of the
+        object_id (`fk_field`) Field.
+        """
+        opts = sender._meta
+        fields = opts.local_fields + opts.local_many_to_many + opts.virtual_fields
+        ct_field = [f for f in fields if f.name == self.ct_field][0]
+        fk_field = [f for f in fields if f.name == self.fk_field][0]
+        ct_field.fk_field = fk_field.name
 
     def instance_post_init(self, instance, force=False, *args, **kwargs):
         ct = getattr(instance, self.ct_field)
@@ -26,12 +39,6 @@ class GenericForeignKey(generic.GenericForeignKey):
                 pass
             else:
                 self.contribute_to_instance(instance, model_cls)
-
-        opts = instance._meta
-        fields = opts.local_fields + opts.local_many_to_many + opts.virtual_fields
-        ct_field = [f for f in fields if f.name == self.ct_field][0]
-        fk_field = [f for f in fields if f.name == self.fk_field][0]
-        ct_field.fk_field = fk_field.name
 
     def get_content_type(self, obj=None, id=None, using=None):
         """
