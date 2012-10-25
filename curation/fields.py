@@ -257,7 +257,7 @@ class ContentTypeSourceChoices(object):
                     ct_value['data-field-name'] = field_name
                     ct_value['class'] += u' curated-content-type-ptr'
                     try:
-                        ct_id = ContentType.objects.get_for_model(model_cls).pk
+                        ct_id = ContentType.objects.get_for_model(model_cls, False).pk
                     except model_cls.DoesNotExist:
                         # We haven't done a syncdb or migration yet
                         pass
@@ -266,7 +266,7 @@ class ContentTypeSourceChoices(object):
             # content_type_id for the app_label and model_name
             if app_label != 'self':
                 ct_model = models.get_model(app_label, model_name, False)
-                ct_id = ContentType.objects.get_for_model(ct_model).pk
+                ct_id = ContentType.objects.get_for_model(ct_model, False).pk
 
             ct_value['value'] = ct_id
 
