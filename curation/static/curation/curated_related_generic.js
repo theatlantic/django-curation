@@ -23,6 +23,19 @@
         }
         var ct = DJCURATION.CONTENT_TYPES[val];
         if (!ct) {
+            var $content_type = $('#' + id);
+            var curationPrefix = $content_type.curationPrefix();
+            if (curationPrefix) {
+                var inlineRelatedId = curationPrefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2');
+                var inlineRelated = document.getElementById(inlineRelatedId);
+                if (inlineRelated) {
+                    $(document).trigger('djnesting:lookup', inlineRelated, {
+                        "label": null,
+                        "value": null,
+                        "fk": {}
+                    });
+                }
+            }
             return;
         }
 
@@ -64,16 +77,59 @@
         }
 
         var $text = $object_id.next().next();
-        var val = $content_type.val();
-        var ct = DJCURATION.CONTENT_TYPES[val];
+        var ctId = $content_type.val();
+        var ct = DJCURATION.CONTENT_TYPES[ctId];
         if (!ct) { return; }
 
+        var curationPrefix = $content_type.curationPrefix();
+
+        var data = $content_type.data();
         $.getJSON(DJCURATION.LOOKUP_URL, {
             object_id: $object_id.val(),
             app_label: ct.app,
-            model_name: ct.model
+            model_name: ct.model,
+            ct_id: data.contentTypeId,
+            ct_field: data.fieldName,
+            fk_field: data.fkFieldName
         }, function(data) {
-            $text.text(data[0].label);
+            if (Object.prototype.toString.call(data) == '[object Array]' && data.length == 1) {
+                data = data[0];
+            }
+            var fk;
+            if (data.fk) {
+                fk = data.fk;
+            } else if (data.length && data.length == 1 && typeof data[0] == 'object' && data[0].fk) {
+                fk = data[0].fk;
+            }
+
+            if (fk) {
+                var placeholderFields = $content_type.data('placeholderFields' + ctId) || {};
+                for (var fieldName in placeholderFields) {
+                    var $input = $('#' + curationPrefix + fieldName);
+                    $input.attr('placeholder', '');
+                }
+                placeholderFields = {};
+                for (var fieldName in fk) {
+                    var $input = $('#' + curationPrefix + fieldName);
+                    if (!$input.length || !$input.is('textarea,input[type="text"]')) {
+                        continue;
+                    }
+                    var val = fk[fieldName];
+                    $input.attr('placeholder', val);
+                    placeholderFields[fieldName] = val;
+                }
+                $content_type.data('placeholderFields' + ctId, placeholderFields);
+            }
+
+            if (curationPrefix) {
+                var inlineRelatedId = curationPrefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2');
+                var inlineRelated = document.getElementById(inlineRelatedId);
+                if (inlineRelated) {
+                    $(document).trigger('djnesting:lookup', inlineRelated, data);
+                }
+            }
+
+            $text.text(data.label);
         });
     };
 

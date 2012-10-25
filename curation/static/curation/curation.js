@@ -84,6 +84,13 @@
             return;
         }
 
+        var inlineRelatedId = prefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2');
+        var $inlineRelated = $('#' + inlineRelatedId);
+
+        $inlineRelated.find('input[placeholder],textarea[placeholder]').each(function(i, input) {
+            input.removeAttribute('placeholder');
+        });
+
         var selectValue = $select.val(),
             previousSelectValue = $select.data('previousValue');
 

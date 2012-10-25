@@ -425,6 +425,8 @@ class ContentTypeChoiceField(forms.TypedChoiceField):
         kwargs['widget'] = SourceSelect(attrs={
             'class': 'curated-content-type-select',
             'data-field-name': field.name,
+            # The content-type-id of the model the field is defined on
+            'data-content-type-id': ContentType.objects.get_for_model(field.model, False).pk,
             'data-fk-field-name': field.fk_field,})
         super(ContentTypeChoiceField, self).__init__(*args, **kwargs)
 

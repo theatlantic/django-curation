@@ -16,35 +16,100 @@ def get_label(f):
     get_label_func = getattr(f, "related_label", f.__unicode__)
     return get_label_func()
 
+def get_common_field_values(curated_item_cls, fk_obj):
+    field_overrides = getattr(curated_item_cls, 'field_overrides', {})
+    override_field_names = field_overrides.keys()
+    curated_fields = set([f.name for f in curated_item_cls._meta.fields])
+    curated_fields = curated_fields.union(set(override_field_names))
+    fk_fields = set([f.attname for f in fk_obj._meta.fields
+                     if f.name in curated_fields])
+    fk_data = {}
+    for field_name in fk_fields:
+        try:
+            value = getattr(fk_obj, field_name, None)
+        except:
+            pass
+        if value is not u"" and value is not "":
+            if field_name in field_overrides:
+                field_name = field_overrides[field_name]
+            fk_data[field_name] = value
+    return fk_data
+
+def get_curated_item_for_request(request):
+    data = {}
+
+    app_label = request.GET.get('app_label')
+    model_name = request.GET.get('model_name')
+    try:
+        ct_field = str(request.GET.get('ct_field'))
+        fk_field = str(request.GET.get('fk_field'))
+    except UnicodeEncodeError:
+        return None
+
+    # At some point, do something with this validation
+    try:
+        object_id = int(request.GET.get('object_id'))
+        model_ct_id = int(request.GET.get('ct_id'))
+    except (TypeError, ValueError):
+        return None
+
+    ct_model_cls = models.get_model(app_label, model_name)
+    if ct_model_cls is None:
+        return data
+    ct_id = ContentType.objects.get_for_model(ct_model_cls)
+
+    try:
+        model_content_type = ContentType.objects.get_for_id(model_ct_id)
+    except ContentType.DoesNotExist:
+        return None
+
+    model_cls = model_content_type.model_class()
+    init_kwargs = {
+        ct_field: ct_id,
+        fk_field: object_id,
+    }
+    curated_item = model_cls(**init_kwargs)
+    curated_field_name = getattr(model_cls._meta, '_curated_proxy_field_name', None)
+    if curated_field_name is None:
+        return None
+
+    try:
+        fk_obj = getattr(curated_item, curated_field_name)
+    except:
+        fk_data = None
+    else:
+        fk_data = get_common_field_values(model_cls, fk_obj)
+
+    data.update({"fk": fk_data})
+
+    try:
+        obj = ct_model_cls.objects.get(pk=object_id)
+    except ct_model_cls.DoesNotExist:
+        return None
+    else:
+        data.update({
+            "value": obj.pk,
+            "label": get_label(obj),
+        })
+    return [data]
 
 @never_cache
 def related_lookup(request):
     if not (request.user.is_active and request.user.is_staff):
         return HttpResponseForbidden('<h1>Permission denied</h1>')
     data = []
-    required_params = ('app_label', 'model_name', 'object_id',)
+    required_params = ('app_label', 'model_name', 'object_id', 'ct_field', 'fk_field', 'ct_id',)
 
     if request.method == 'GET':
         if all([request.GET.get(k) for k in required_params]):
-            object_id = request.GET.get('object_id')
-            app_label = request.GET.get('app_label')
-            model_name = request.GET.get('model_name')
-            try:
-                model = models.get_model(app_label, model_name)
-                obj = model.objects.get(pk=object_id)
-                data.append({
-                    "value": obj.id,
-                    "label": get_label(obj),
-                })
+            data = get_curated_item_for_request(request)
+            if data is not None:
                 return HttpResponse(simplejson.dumps(data),
                     mimetype='application/javascript')
-            except:
-                pass
 
     data = [{"value": None, "label": ""}]
     return HttpResponse(simplejson.dumps(data),
         mimetype='application/javascript')
-
 
 def get_content_types(request):
     if not (request.user.is_active and request.user.is_staff):
