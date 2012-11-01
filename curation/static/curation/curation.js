@@ -41,37 +41,94 @@
             return prefixCache[cacheKey];
         };
 
-        $.fn.curationCtField = function() {
-            if (!this.length) {
+        $.fn.curationField = function(fieldName) {
+            if (!this.length || !fieldName) {
                 return;
             }
             var $this = (this.length > 1) ? $(this[0]) : this;
             var prefix = $this.curationPrefix();
             if (!prefix) { return; }
 
-            var elementData = $this.data();
-            if (!elementData.ctFieldName) {
+            return $('#' + prefix + fieldName);
+        };
+
+        $.fn.curationCtField = function() {
+            if (!this.length) {
                 return;
             }
-            return $('#' + prefix + elementData.ctFieldName);
+            var $this = (this.length > 1) ? $(this[0]) : this,
+                fieldName = $this.data('ctFieldName'),
+                $ctField = $this.curationField(fieldName);
+
+            if ($ctField && $ctField.length) {
+                $ctField.data('fieldName', fieldName);
+                var fkFieldName = $this.data('fkFieldName');
+                if (fkFieldName) {
+                    $ctField.data('fkFieldName', fkFieldName);
+                }
+                return $ctField;
+            }
         };
 
         $.fn.curationFkField = function() {
             if (!this.length) {
                 return;
             }
-            var $this = (this.length > 1) ? $(this[0]) : this;
-            var prefix = $this.curationPrefix();
-            if (!prefix) { return; }
+            var $this = (this.length > 1) ? $(this[0]) : this,
+                fieldName = $this.data('fkFieldName'),
+                $fkField = $this.curationField(fieldName);
 
-            var elementData = $this.data();
-            if (!elementData.fkFieldName) {
-                return;
+            if ($fkField && $fkField.length) {
+                $fkField.data('fieldName', fieldName);
+                var ctFieldName = $this.data('ctFieldName');
+                if (ctFieldName) {
+                    $fkField.data('ctFieldName', ctFieldName);
+                }
+                return $fkField;
             }
-            return $('#' + prefix + elementData.fkFieldName);
         };
+
     })();
 
+
+    /**
+     * Returns either false or, if the selected option in $select points to
+     * another field on the model (e.g. if the source was 'self.url'), the
+     * name of the pointer field.
+     */
+    var getActivePointerField = function($select) {
+        var previousSelectValue = $select.data('previousValue') || $select.val(),
+            selectValue = $select.val(),
+            oldValueData = {},
+            prefix = $select.curationPrefix(),
+            activePtrFieldName;
+
+        oldValueData[previousSelectValue] = {};
+
+        $select.find('.curated-content-type-ptr').each(function(i, option) {
+            var $option = $(option);
+            var ptrFieldName = $option.data('fieldName');
+            var $ptrField = $('#' + prefix + ptrFieldName);
+            if (!$ptrField.length) { return; }
+
+            oldValueData[previousSelectValue][ptrFieldName] = $ptrField.val();
+
+            if ($option.attr('value') == selectValue) {
+                activePtrFieldName = ptrFieldName;
+                $ptrField.closest('.' + ptrFieldName).andSelf().show();
+            } else {
+                $ptrField.val('').closest('.' + ptrFieldName).andSelf().hide();
+            }
+        });
+        var $fkField = $select.curationFkField();
+        if ($fkField && $fkField.length) {
+            $fkField.data('oldValue', $.extend(true,
+                $fkField.data('oldValue') || {},
+                oldValueData));
+        }
+
+        return activePtrFieldName;
+    };
 
     // Toggle the display:block/display:none styles of form rows and
     // inputs based on the currently selected option in `select` (a generic
@@ -87,84 +144,102 @@
         var inlineRelatedId = prefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2');
         var $inlineRelated = $('#' + inlineRelatedId);
 
+        // Clear out existing placeholder attributes
         $inlineRelated.find('input[placeholder],textarea[placeholder]').each(function(i, input) {
             input.removeAttribute('placeholder');
         });
 
-        var selectValue = $select.val(),
-            previousSelectValue = $select.data('previousValue');
+        var previousSelectValue = $select.data('previousValue') || $select.val(),
+            $fkField = $select.curationFkField();
 
-        // Whether one of the options which points to another field on this
-        // model is the selected one. Is set inside the each() function below
-        var ptrFieldSelected = false;
+        // ptrFieldSelected: Either false or, if the selected option points to
+        // another field on the model (e.g. if the source was 'self.url'), the
+        // name of the pointer field ('url' in the case of 'self.url').
+        var ptrFieldSelected = getActivePointerField($select);
 
-        $select.find('.curated-content-type-ptr').each(function(i, option) {
-            var $option = $(option);
-            var optionFieldName = $option.data('fieldName');
-            var $optionField = $('#' + prefix + optionFieldName);
-            if (!$optionField.length) {
-                return;
-            }
-            if ($option.attr('value') == selectValue) {
-                ptrFieldSelected = true;
-                $optionField.show();
-                $optionField.closest('.' + optionFieldName).show();
-            } else {
-                $optionField.hide();
-                $optionField.closest('.' + optionFieldName).hide();
-            }
-        });
-
-        var $fkField = $select.curationFkField();
-
-        // The data property `oldValue` on the generic content-type's
-        // object_id field is a javascript object keyed on the select
-        // field's value (i.e. the content_type_id), containing the
-        // value of the object_id field at the time that the field
-        // was changed.
+        // The data-old-value attribute on the generic content-type's
+        // object_id field is a javascript object keyed on the select field's
+        // value (i.e. the content_type_id), then the field name, e.g.:
+        //
+        // oldValue = {
+        //      '79': {'object_id': '',    'url': 'http://www.google.com/'}
+        //      '80': {'object_id': '123', 'url': ''}
+        // }
+        //
+        // where oldValue[contentTypeId][fieldName] is equal to the value of
+        // `fieldName` at the time the content_type field changed *away from*
+        // that value.
         //
         // The purpose of maintaining this is that we reset the object_id
-        // field's value = '' when the content_type select changes. This code
-        // allows the user to change the content_type back and not lose the
-        // original object_id that was entered.
-        var oldValueData = $fkField.data('oldValue');
-        if (!oldValueData) {
-            oldValueData = {};
-        }
-        if (!previousSelectValue) {
-            oldValueData[selectValue] = $fkField.val();
-        } else {
-            oldValueData[previousSelectValue] = $fkField.val();
-        }
-        $fkField.data('oldValue', oldValueData);
+        // value (or, the pointer field's value, if the source points to an
+        // internal field) when the content_type select changes. This code
+        // allows the user to change content_type back and forth without
+        // losing the data for that field.
+        var oldValueData = {};
+        oldValueData[previousSelectValue] = {};
+
+        oldValueData[previousSelectValue][selectData.fkFieldName] = $fkField.val();
+        $fkField.data('oldValue', $.extend(true,
+            $fkField.data('oldValue') || {},
+            oldValueData));
 
         if (ptrFieldSelected) {
             $fkField.hide();
-            $fkField.closest('.' + selectData.fkFieldName).hide();
+            $fkField.closest('.row').hide();
         } else {
             $fkField.show();
-            $fkField.closest('.' + selectData.fkFieldName).show();
+            $fkField.closest('.row').show();
         }
 
         // If the content_type_id has changed to a value that was previously
         // selected and had an object_id associated with it, reset to that
         // object_id
         setTimeout(function() {
-            var selectValue = $select.val();
+            var selectValue = $select.val(),
+                oldSelectValue = $select.data('previousValue');
             $select.data('previousValue', selectValue);
-            if (ptrFieldSelected) { return; }
+            var oldValue, fieldName, $field;
+            if (ptrFieldSelected) {
+                fieldName = ptrFieldSelected;
+                $field = $('#' + prefix + fieldName);
+            } else {
+                fieldName = selectData.fkFieldName;
+                $field = $fkField;
+            }
+            oldValue = $field.val();
 
             var oldValueData = $fkField.data('oldValue');
-            if (typeof oldValueData != 'object' || !oldValueData[selectValue]) {
-                return;
+            if (typeof oldValueData == 'object' && typeof oldValueData[selectValue] == 'object') {
+                // If we have changed the content_type_id back to a field that
+                // previously had data entered in the foreign key field or the
+                // pointer field, and those fields are currently blank, restore
+                // the original value.
+                var newValue = oldValueData[selectValue][fieldName];
+                if ($field.val() === '' && typeof(newValue) != 'undefined') {
+                    $field.val(newValue);
+                    // Trigger change handlers so that the title is fetched for
+                    // the associated content object
+                    $field.trigger('change');
+                    if (!ptrFieldSelected) { // e.g. if ($field[0] == $fkField[0])
+                        // return, since $fkField.onchange triggers djcuration:change,
+                        // so continuing would fire the event twice
+                        return;
+                    }
+                }
             }
-            var oldValue = oldValueData[selectValue];
-            if ($fkField.val() === '' && typeof(oldValue) != 'undefined') {
-                $fkField.val(oldValue);
-                // Trigger change handlers so that the title is fetched for
-                // the associated content object
-                $fkField.trigger('change');
-            }
+
+            $(document).trigger('djcuration:change', [$select[0], {
+                'prefix': prefix,
+                'inlineRelated': $inlineRelated,
+                'fieldName': fieldName,
+                'field': $field,
+                'fields': {
+                    'fkField': $fkField,
+                    'ptrField': (ptrFieldSelected) ? $field : null
+                },
+                'oldValue': (oldSelectValue) ? oldValue : undefined,
+                'oldSelectValue': oldSelectValue
+            }]);
         }, 12);
     };
 
@@ -182,6 +257,9 @@
         $fkField.closest(rowSelector).addClass('curated-object-id-row');
 
         toggleContentTypeFields($this);
+
+        $this.data('previousValue', $this.val());
+
         // Bind to the focus event to store the previous value
         $this.bind("focus", function(evt) {
             var $select = $(evt.target);
@@ -190,6 +268,30 @@
         });
         $this.bind("change", function(evt) {
             toggleContentTypeFields($(evt.target));
+        });
+
+        $fkField.bind("change", function(evt) {
+            var $field = $(evt.target),
+                prefix = $field.curationPrefix() || '',
+                inlineRelatedId = prefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2'),
+                $inlineRelated = $('#' + inlineRelatedId),
+                $select = $field.curationCtField(),
+                ptrFieldSelected = getActivePointerField($select),
+                $ptrField = (ptrFieldSelected) ? $('#' + prefix + ptrFieldSelected) : undefined,
+                fieldName = (ptrFieldSelected) ? ptrFieldSelected : $select.data('fkFieldName');
+
+            $(document).trigger('djcuration:change', [$select[0], {
+                'prefix': prefix,
+                'inlineRelated': $inlineRelated,
+                'fieldName': fieldName,
+                'field': ($ptrField) ? $ptrField : $field,
+                'fields': {
+                    'fkField': $fkField,
+                    'ptrField': $ptrField
+                },
+                'oldValue': undefined,
+                'oldSelectValue': undefined
+            }]);
         });
 
         $this.curated_related_generic();

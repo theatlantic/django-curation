@@ -6,7 +6,11 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.utils.simplejson import simplejson
 from django.views.decorators.cache import never_cache
 
-from .models import ContentType
+from ..models import ContentType
+
+# The version of django.contrib.contenttypes.views.shortcut with a bug fixed
+# for multi-db setups
+from .contenttypes import shortcut
 
 
 ct_ids = [v[0] for v in ContentType.objects.all().values_list('id')]
@@ -134,11 +138,30 @@ def get_content_types(request):
 
     related_lookup_url = reverse('curation_related_lookup')
 
+    shortcut_url = reverse('curation_shortcut', kwargs={
+        'content_type_id': 0,
+        'object_id': 0,
+    }).replace('/0/0', '/{0}/{1}');
+
     ct_js = textwrap.dedent(u"""
         var DJCURATION = (typeof window.DJCURATION != "undefined")
                        ? DJCURATION : {};
         DJCURATION.CONTENT_TYPES = %s;
-        DJCURATION.LOOKUP_URL = %s;""" % (
+        DJCURATION.LOOKUP_URL = %s;
+
+        (function() {
+            var urlTemplate = %s,
+                templateRegex = /\{(\d+)\}/gm;
+
+            DJCURATION.getShortcutUrl = function(contentTypeId, objectId) {
+                var args = [contentTypeId, objectId];
+                return urlTemplate.replace(templateRegex, function(match, p1, offset, string) {
+                    return (args[p1]) ? args[p1] : '0';
+                });
+            };
+
+        })();""" % (
             simplejson.dumps(content_types),
-            simplejson.dumps(related_lookup_url),))
+            simplejson.dumps(related_lookup_url),
+            simplejson.dumps(shortcut_url),))
     return HttpResponse(ct_js.strip(), mimetype='application/javascript')

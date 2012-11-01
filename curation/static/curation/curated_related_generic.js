@@ -29,11 +29,11 @@
                 var inlineRelatedId = curationPrefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2');
                 var inlineRelated = document.getElementById(inlineRelatedId);
                 if (inlineRelated) {
-                    $(document).trigger('djnesting:lookup', inlineRelated, {
+                    $(document).trigger('djnesting:lookup', [inlineRelated, {
                         "label": null,
                         "value": null,
                         "fk": {}
-                    });
+                    }]);
                 }
             }
             return;
@@ -125,7 +125,7 @@
                 var inlineRelatedId = curationPrefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2');
                 var inlineRelated = document.getElementById(inlineRelatedId);
                 if (inlineRelated) {
-                    $(document).trigger('djnesting:lookup', inlineRelated, data);
+                    $(document).trigger('djnesting:lookup', [inlineRelated, data]);
                 }
             }
 
@@ -181,6 +181,13 @@
                 unbindEvents($content_type);
                 unbindEvents($object_id);
 
+                $object_id.bind("change focus keyup blur", function() { // id-handler
+                    lookup_id($(this), options);
+                });
+                $content_type.bind("change", function() { // content-type-handler
+                    update_lookup($(this), options);
+                });
+
                 if ($content_type.val()) {
                     var link = lookup_link($object_id.attr("id"), $content_type.val());
                     if (!link) {
@@ -190,12 +197,7 @@
                 }
                 // lookup
                 lookup_id($object_id, options); // lookup when loading page
-                $object_id.bind("change focus keyup blur", function() { // id-handler
-                    lookup_id($(this), options);
-                });
-                $content_type.bind("change", function() { // content-type-handler
-                    update_lookup($(this), options);
-                });
+
             });
         }
     };
