@@ -56,7 +56,7 @@ def get_curated_item_for_request(request):
     ct_model_cls = models.get_model(app_label, model_name)
     if ct_model_cls is None:
         return data
-    ct_id = ContentType.objects.get_for_model(ct_model_cls)
+    ct_id = ContentType.objects.get_for_model(ct_model_cls, False)
 
     try:
         model_content_type = ContentType.objects.get_for_id(model_ct_id)
