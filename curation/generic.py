@@ -48,7 +48,7 @@ class GenericForeignKey(generic.GenericForeignKey):
         from .models import ContentType
         if obj:
             using = obj._state.db
-            return ContentType.objects.db_manager(using).get_for_model(obj)
+            return ContentType.objects.db_manager(using).get_for_model(obj, False)
         elif id:
             return ContentType.objects.db_manager(using).get_for_id(id)
         else:
