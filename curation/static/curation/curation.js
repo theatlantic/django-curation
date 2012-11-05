@@ -270,6 +270,7 @@
             toggleContentTypeFields($(evt.target));
         });
 
+        // Fire djcuration:change on object_id change
         $fkField.bind("change", function(evt) {
             var $field = $(evt.target),
                 prefix = $field.curationPrefix() || '',
@@ -277,7 +278,7 @@
                 $inlineRelated = $('#' + inlineRelatedId),
                 $select = $field.curationCtField(),
                 ptrFieldSelected = getActivePointerField($select),
-                $ptrField = (ptrFieldSelected) ? $('#' + prefix + ptrFieldSelected) : undefined,
+                $ptrField = $(evt.target),
                 fieldName = (ptrFieldSelected) ? ptrFieldSelected : $select.data('fkFieldName');
 
             $(document).trigger('djcuration:change', [$select[0], {
@@ -294,6 +295,47 @@
             }]);
         });
 
+        // Fire djcuration:change on pointer field change
+        var $select = $this,
+            prefix = $select.curationPrefix() || '',
+            ctFieldName = $select.data('ctFieldName');
+
+        $this.find('.curated-content-type-ptr').each(function(i, option) {
+            var $option = $(option);
+            var ptrFieldName = $option.data('fieldName');
+            var $ptrField = $('#' + prefix + ptrFieldName);
+            if (!$ptrField.length) { return; }
+
+            $ptrField.data('fieldName', ptrFieldName);
+
+            $ptrField.bind('change', function(evt) {
+                var $field = $(evt.target),
+                    prefix = $field.curationPrefix() || '',
+                    inlineRelatedId = prefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2'),
+                    $inlineRelated = $('#' + inlineRelatedId),
+                    $select = $('#' + prefix + ctFieldName),
+                    ptrFieldSelected = getActivePointerField($select),
+                    $ptrField = $field,
+                    fieldName = (ptrFieldSelected) ? ptrFieldSelected : $select.data('fkFieldName');
+
+                if (ptrFieldSelected == ptrFieldName) {
+                    $(document).trigger('djcuration:change', [$select[0], {
+                        'prefix': prefix,
+                        'inlineRelated': $inlineRelated,
+                        'fieldName': fieldName,
+                        'field': ($ptrField) ? $ptrField : $field,
+                        'fields': {
+                            'fkField': $fkField,
+                            'ptrField': $ptrField
+                        },
+                        'oldValue': undefined,
+                        'oldSelectValue': undefined
+                    }]);
+                }
+            });
+        });
+
+        // Initialize hooks into grapelli inlines
         $this.curated_related_generic();
     };
 

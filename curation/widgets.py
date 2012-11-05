@@ -14,8 +14,8 @@ class SourceSelect(widgets.Select):
         media = widgets.Media()
         media.add_js((
             reverse('curation_content_type_list'),
-            settings.STATIC_URL + 'curation/curated_related_generic.js',
-            settings.STATIC_URL + 'curation/curation.js',))
+            settings.STATIC_URL + 'curation/curated_related_generic.js?v=1',
+            settings.STATIC_URL + 'curation/curation.js?v=1',))
         media.add_css({
                 'all': (settings.STATIC_URL + 'curation/curation.css',)})
         return media
