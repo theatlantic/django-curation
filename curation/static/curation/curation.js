@@ -350,4 +350,29 @@
             $(element).curated_content_type();
         });
     });
+
+    // The function called by the popup window when the user clicks on a row's
+    // link in the changelist for a foreignkey or generic foreign key lookup.
+    //
+    // It overwrites the existing function in Grapelli to trigger 'change' on
+    // the related input
+    window.dismissRelatedLookupPopup = function(win, chosenId, targetElement) {
+        var name = windowname_to_id(win.name);
+        var elem = document.getElementById(name);
+        if (elem.className.indexOf('vManyToManyRawIdAdminField') != -1 && elem.value) {
+            elem.value += ',' + chosenId;
+        } else {
+            elem.value = chosenId;
+        }
+        $elem = $(elem);
+        
+        // This line is the only change from Grappeli
+        $elem.trigger('change');
+
+        var title = (typeof targetElement == 'object') ? targetElement.innerHTML : null;
+        win.close();
+    };
+
 })();
+
+
