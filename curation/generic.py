@@ -16,7 +16,9 @@ class GenericForeignKey(generic.GenericForeignKey):
     def contribute_to_class(self, cls, name):
         super(GenericForeignKey, self).contribute_to_class(cls, name)
         signals.post_init.connect(self.instance_post_init, sender=cls)
-        signals.class_prepared.connect(self.relate_fk_field_to_ct_field, sender=cls)
+
+        if not cls._meta.proxy:
+            signals.class_prepared.connect(self.relate_fk_field_to_ct_field, sender=cls)
 
     def relate_fk_field_to_ct_field(self, sender, **kwargs):
         """

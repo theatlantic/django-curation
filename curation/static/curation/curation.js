@@ -30,7 +30,7 @@
             }
             var regex = elementData.regex;
             if (!regex) {
-                regex = new RegExp("^(.+\\-\\d+\\-)" + elementData.fieldName + "$");
+                regex = new RegExp("^(id_|.+\\-(?:\\d+\\-)?)" + elementData.fieldName + "$");
                 $this.data('regex', regex);
             }
             var matches = elementId.match(regex);
@@ -141,8 +141,13 @@
             return;
         }
 
-        var inlineRelatedId = prefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2');
-        var $inlineRelated = $('#' + inlineRelatedId);
+        var $inlineRelated;
+        if (prefix == 'id_') {
+            $inlineRelated = $select.closest('fieldset');
+        } else {
+            var inlineRelatedId = prefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2');
+            $inlineRelated = $('#' + inlineRelatedId);
+        }
 
         // Clear out existing placeholder attributes
         $inlineRelated.find('input[placeholder],textarea[placeholder]').each(function(i, input) {
