@@ -1,4 +1,5 @@
 from django.db import models, router
+from django.db.models.base import ModelBase
 from django.contrib.contenttypes import models as ct_models
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_unicode
@@ -84,7 +85,19 @@ class ContentTypeManager(ct_models.ContentTypeManager):
             self._add_to_cache(self.db, ct)
             results[ct.model_class()] = ct
         return results
-    
+
+class ContentTypeMetaclass(ModelBase):
+    """
+    Override the metaclass on our ContentType proxy model, so that isinstance
+    returns True if compared to a concrete ContentType.
+
+    If this is not done, a ValueError is thrown if the user passes a concrete
+    ContentType instance to a field with rel.to=curation.models.ContentType
+    """
+
+    def __instancecheck__(cls, instance):
+        return isinstance(instance, ct_models.ContentType)
+
 
 class ContentType(ct_models.ContentType):
     """
@@ -92,6 +105,8 @@ class ContentType(ct_models.ContentType):
     overrides the get_object_for_this_type() method to allow it to work with
     contenttypes that reside on multiple databases.
     """
+
+    __metaclass__ = ContentTypeMetaclass
 
     objects = ContentTypeManager()
 
