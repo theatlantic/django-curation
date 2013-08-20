@@ -266,6 +266,9 @@ class ContentTypeSourceChoices(object):
             # content_type_id for the app_label and model_name
             if app_label != 'self':
                 ct_model = models.get_model(app_label, model_name, False)
+                if not ct_model:
+                    raise exceptions.ImproperlyConfigured(
+                        u"Could not find model %s.%s" % (app_label, model_name))
                 ct_id = ContentType.objects.get_for_model(ct_model, False).pk
 
             ct_value['value'] = ct_id
