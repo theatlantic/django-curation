@@ -256,11 +256,13 @@ class ContentTypeSourceChoices(object):
                     # We access this value after render with javascript
                     ct_value['data-field-name'] = field_name
                     ct_value['class'] += u' curated-content-type-ptr'
-                    try:
-                        ct_id = ContentType.objects.get_for_model(model_cls, False).pk
-                    except model_cls.DoesNotExist:
-                        # We haven't done a syncdb or migration yet
-                        pass
+
+                    if not model_cls._meta.abstract:
+                        try:
+                            ct_id = ContentType.objects.get_for_model(model_cls, False).pk
+                        except model_cls.DoesNotExist:
+                            # We haven't done a syncdb or migration yet
+                            pass
 
             # If the relation isn't of the form 'self.field_name', grab the
             # content_type_id for the app_label and model_name
