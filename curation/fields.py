@@ -2,7 +2,7 @@ from collections import Mapping
 import textwrap
 
 from django.core import exceptions, validators
-from django.db import models
+from django.db import models, connection
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.fields.related import ForeignKey
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
@@ -258,11 +258,13 @@ class ContentTypeSourceChoices(object):
                     ct_value['class'] += u' curated-content-type-ptr'
 
                     if not model_cls._meta.abstract:
-                        try:
-                            ct_id = ContentType.objects.get_for_model(model_cls, False).pk
-                        except model_cls.DoesNotExist:
-                            # We haven't done a syncdb or migration yet
-                            pass
+                        # If we're running syncdb, django_content_type might not yet exist
+                        if ContentType._meta.db_table in connection.introspection.table_names():
+                            try:
+                                ct_id = ContentType.objects.get_for_model(model_cls, False).pk
+                            except model_cls.DoesNotExist:
+                                # We haven't done a syncdb or migration yet
+                                pass
 
             # If the relation isn't of the form 'self.field_name', grab the
             # content_type_id for the app_label and model_name
@@ -271,7 +273,11 @@ class ContentTypeSourceChoices(object):
                 if not ct_model:
                     raise exceptions.ImproperlyConfigured(
                         u"Could not find model %s.%s" % (app_label, model_name))
-                ct_id = ContentType.objects.get_for_model(ct_model, False).pk
+                # If we're running syncdb, django_content_type might not yet exist
+                if ContentType._meta.db_table in connection.introspection.table_names():
+                    ct_id = ContentType.objects.get_for_model(ct_model, False).pk
+                else:
+                    ct_id = None
 
             ct_value['value'] = ct_id
 
