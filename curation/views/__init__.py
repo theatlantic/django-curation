@@ -97,6 +97,14 @@ def get_curated_item_for_request(request):
         })
     return [data]
 
+def empty_json(obj):
+    """
+    If we don't know how to serialize an object, just return `None`
+    instead of throwing `TypeError: <whatever> is not JSON serializable`.
+    """
+
+    return None
+
 @never_cache
 def related_lookup(request):
     if not (request.user.is_active and request.user.is_staff):
@@ -108,7 +116,7 @@ def related_lookup(request):
         if all([request.GET.get(k) for k in required_params]):
             data = get_curated_item_for_request(request)
             if data is not None:
-                return HttpResponse(simplejson.dumps(data),
+                return HttpResponse(simplejson.dumps(data, default=empty_json),
                     mimetype='application/javascript')
 
     data = [{"value": None, "label": ""}]
