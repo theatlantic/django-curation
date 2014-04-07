@@ -214,7 +214,7 @@ class CuratedItem(models.Model):
         # We would get an infinite loop if self.field_overrides[attr] == attr
         if attr in self.field_overrides and self.field_overrides[attr] != attr:
             val = getattr(self, self.field_overrides[attr])
-            if val is not None and val != '':
+            if val or isinstance(val, bool):
                 return val
 
         proxy_attrs = []
