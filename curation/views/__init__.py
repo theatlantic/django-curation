@@ -33,6 +33,12 @@ def get_common_field_values(curated_item_cls, fk_obj):
             value = getattr(fk_obj, field_name, None)
         except:
             pass
+
+        # If the field is a FileField, get the name of the file
+        # as the value, so it can be converted to json.
+        if hasattr(value, 'file') and hasattr(value.file, 'name'):
+            value = value.file.name
+ 
         if value is not u"" and value is not "":
             if field_name in field_overrides:
                 field_name = field_overrides[field_name]
@@ -41,7 +47,6 @@ def get_common_field_values(curated_item_cls, fk_obj):
 
 def get_curated_item_for_request(request):
     data = {}
-
     app_label = request.GET.get('app_label')
     model_name = request.GET.get('model_name')
     try:
