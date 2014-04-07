@@ -11,7 +11,7 @@ import curation
 
 setup(
     name='django-curation',
-    version=curation.__version__,
+    version="1.0.11",
     description='A model used for curating other models and proxying their attributes',
     author='The Atlantic',
     author_email='atmoprogrammers@theatlantic.com',
