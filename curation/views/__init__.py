@@ -36,8 +36,8 @@ def get_common_field_values(curated_item_cls, fk_obj):
 
         # If the field is a FileField, get the name of the file
         # as the value, so it can be converted to json.
-        if hasattr(value, 'file'):
-            value = getattr(value, 'name', "")
+        if hasattr(value, 'file') and hasattr(value.file, 'name'):
+            value = value.file.name
  
         if value is not u"" and value is not "":
             if field_name in field_overrides:
