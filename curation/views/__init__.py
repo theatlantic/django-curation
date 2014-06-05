@@ -1,9 +1,9 @@
 import textwrap
+import json
 
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.db import models
 from django.http import HttpResponse, HttpResponseForbidden
-from django.utils.simplejson import simplejson
 from django.views.decorators.cache import never_cache
 
 from ..models import ContentType
@@ -13,7 +13,7 @@ from ..models import ContentType
 from .contenttypes import shortcut
 
 
-ct_ids = [v[0] for v in ContentType.objects.all().values_list('id')]
+ct_vals = ContentType.objects.all().values('pk', 'app_label', 'model')    
 
 
 def get_label(f):
@@ -121,40 +121,44 @@ def related_lookup(request):
         if all([request.GET.get(k) for k in required_params]):
             data = get_curated_item_for_request(request)
             if data is not None:
-                return HttpResponse(simplejson.dumps(data, default=empty_json),
+                return HttpResponse(json.dumps(data, default=empty_json),
                     mimetype='application/javascript')
 
     data = [{"value": None, "label": ""}]
-    return HttpResponse(simplejson.dumps(data),
+    return HttpResponse(json.dumps(data),
         mimetype='application/javascript')
+
+
+related_lookup_url = None
+shortcut_url = None
+content_types = None
+
 
 def get_content_types(request):
     if not (request.user.is_active and request.user.is_staff):
         return HttpResponseForbidden('"Permission denied"')
+    
+    global content_types, related_lookup_url, shortcut_url
 
-    content_types = {}
-    for ct_id in ct_ids:
-        try:
-            ct = ContentType.objects.get_for_id(ct_id)
-        except AttributeError:
-            pass
-        else:
+    if related_lookup_url is None:
+        related_lookup_url = reverse('curation_related_lookup')
+
+    if shortcut_url is None:
+        shortcut_url = reverse('curation_shortcut', kwargs={
+            'content_type_id': 0,
+            'object_id': 0,
+        }).replace('/0/0', '/{0}/{1}');
+
+    if content_types is None:
+        content_types = {}
+        for ct in ct_vals:
             try:
-                content_types[ct_id] = {
-                    'pk': ct_id,
-                    'app': ct.app_label,
-                    'model': ct.model,
-                    'changelist': reverse('admin:%s_%s_changelist' % (
-                        ct.app_label, ct.model))}
+                ct['changelist'] = reverse(
+                    'admin:%s_%s_changelist' % (ct['app_label'], ct['model']))
             except NoReverseMatch:
                 pass
-
-    related_lookup_url = reverse('curation_related_lookup')
-
-    shortcut_url = reverse('curation_shortcut', kwargs={
-        'content_type_id': 0,
-        'object_id': 0,
-    }).replace('/0/0', '/{0}/{1}');
+            else:
+                content_types[ct['pk']] = ct
 
     ct_js = textwrap.dedent(u"""
         var DJCURATION = (typeof window.DJCURATION != "undefined")
@@ -174,7 +178,7 @@ def get_content_types(request):
             };
 
         })();""" % (
-            simplejson.dumps(content_types),
-            simplejson.dumps(related_lookup_url),
-            simplejson.dumps(shortcut_url),))
+            json.dumps(content_types),
+            json.dumps(related_lookup_url),
+            json.dumps(shortcut_url),))
     return HttpResponse(ct_js.strip(), mimetype='application/javascript')

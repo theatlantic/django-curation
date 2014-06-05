@@ -86,7 +86,7 @@
         var data = $content_type.data();
         $.getJSON(DJCURATION.LOOKUP_URL, {
             object_id: $object_id.val(),
-            app_label: ct.app,
+            app_label: ct.app_label,
             model_name: ct.model,
             ct_id: data.contentTypeId,
             ct_field: data.fieldName,
