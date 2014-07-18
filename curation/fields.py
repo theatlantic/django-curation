@@ -240,8 +240,17 @@ class ContentTypeSourceChoices(object):
 
             # Parse `relation` (the first item in the ct_choice tuple) into
             # app_label and model_name (or field_name, if 'self.something')
+            field_name = None
+            ct_id = None
+
+            # Check for 'app_label.model_name:field' syntax
             try:
-                app_label, model_name = relation.split(".")
+                relation, field_name = relation.split(':')
+            except (ValueError, AttributeError):
+                pass
+
+            try:
+                app_label, _, model_name = relation.rpartition(".")
             except ValueError:
                 # If we can't split, assume a model in current app
                 app_label = model_cls._meta.app_label
@@ -251,19 +260,33 @@ class ContentTypeSourceChoices(object):
                 app_label = relation._meta.app_label
                 model_name = relation._meta.object_name
             else:
+                # Check if the model pointed to is a proxy model of the
+                # model that the field is defined on (which would indicate
+                # that we should treat it the same as we would 'self.field_name'
+                if field_name and model_cls:
+                    ct_model = models.get_model(app_label, model_name, False)
+                    if ct_model and ct_model._meta.proxy and ct_model._meta.concrete_model == model_cls:
+                        try:
+                            ct_id = ContentType.objects.get_for_model(ct_model, False).pk
+                        except AttributeError:
+                            pass
+                        else:
+                            app_label = 'self'
+
                 if app_label == 'self' and model_cls:
-                    field_name = model_name
+                    if not field_name:
+                        field_name = model_name
                     self.check_field_exists(field_name)
                     # We access this value after render with javascript
                     ct_value['data-field-name'] = field_name
                     ct_value['class'] += u' curated-content-type-ptr'
 
-                    if not model_cls._meta.abstract:
+                    if not ct_id and not model_cls._meta.abstract:
                         # If we're running syncdb, django_content_type might not yet exist
                         if ContentType._meta.db_table in connection.introspection.table_names():
                             try:
                                 ct_id = ContentType.objects.get_for_model(model_cls, False).pk
-                            except model_cls.DoesNotExist:
+                            except (model_cls.DoesNotExist, AttributeError):
                                 # We haven't done a syncdb or migration yet
                                 pass
 
