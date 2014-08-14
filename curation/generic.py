@@ -26,11 +26,8 @@ class GenericForeignKey(generic.GenericForeignKey):
         the content_type Field object containing the field name of the
         object_id (`fk_field`) Field.
         """
-        opts = sender._meta
-        fields = opts.local_fields + opts.local_many_to_many + opts.virtual_fields
-        ct_field = [f for f in fields if f.name == self.ct_field][0]
-        fk_field = [f for f in fields if f.name == self.fk_field][0]
-        ct_field.fk_field = fk_field.name
+        ct_field = sender._meta.get_field(self.ct_field)
+        ct_field.fk_field = self.fk_field
 
     def instance_post_init(self, instance, force=False, *args, **kwargs):
         ct = getattr(instance, self.ct_field)
