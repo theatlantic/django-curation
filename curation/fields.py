@@ -104,7 +104,8 @@ class ContentTypeIdChoices(object):
         self.ct_choices = ct_choices
 
     def __iter__(self):
-        for ct_value, label, source_value in self.ct_choices:
+        for ct_choice in self.ct_choices:
+            ct_value, label = ct_choice[0:2]
             yield (ct_value, label)
 
 
