@@ -8,6 +8,7 @@ from django.db.models.fields.related import ForeignKey
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django import forms
 from django.utils.encoding import force_unicode, smart_unicode
+from django.utils.functional import cached_property
 from django.utils.text import capfirst
 
 from .generic import GenericForeignKey
@@ -415,12 +416,15 @@ class SourceFieldDescriptor(object):
     gets assigned a value.
     """
 
-    field = None
     ct_field = None
 
     def __init__(self, ct_field):
         self.ct_field = ct_field
-        self.field = ct_field.source_field
+
+    @cached_property
+    def field(self):
+        return self.ct_field.source_field
+
 
     def __get__(self, instance, instance_type=None):
         if hasattr(self.field, '__get__'):
@@ -552,11 +556,17 @@ class ContentTypeSourceField(models.ForeignKey):
         # Get source field, if the field name was passed in init, and set its
         # choices
         if self.source_field_name is not None:
-            self.source_field = self.model._meta.get_field(self.source_field_name)
-            setattr(self.source_field, '_choices', SourceChoices(self.ct_choices))
             # Add / Replace descriptor for the source field that auto-updates
             # the content-type field
             setattr(cls, self.source_field_name, SourceFieldDescriptor(self))
+
+    @cached_property
+    def source_field(self):
+        if not self.source_field_name:
+            return None
+        source_field = self.model._meta.get_field(self.source_field_name)
+        setattr(source_field, '_choices', SourceChoices(self.ct_choices))
+        return source_field
 
     def validate(self, value, model_instance):
         """
