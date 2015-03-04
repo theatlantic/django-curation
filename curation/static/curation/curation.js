@@ -367,7 +367,7 @@
             elem.value = chosenId;
         }
         $elem = $(elem);
-        
+
         // This line is the only change from Grappeli
         $elem.trigger('change');
 
