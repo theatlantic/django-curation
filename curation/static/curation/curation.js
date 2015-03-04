@@ -96,7 +96,7 @@
      * another field on the model (e.g. if the source was 'self.url'), the
      * name of the pointer field.
      */
-    var getActivePointerField = function($select) {
+    var getActivePointerField = function($select, toggleVisibility) {
         var previousSelectValue = $select.data('previousValue') || $select.val(),
             selectValue = $select.val(),
             oldValueData = {},
@@ -115,8 +115,10 @@
 
             if ($option.attr('value') == selectValue) {
                 activePtrFieldName = ptrFieldName;
-                $ptrField.closest('.' + ptrFieldName).andSelf().show();
-            } else {
+                if (toggleVisibility) {
+                    $ptrField.closest('.' + ptrFieldName).andSelf().show();
+                }
+            } else if (toggleVisibility) {
                 $ptrField.val('').closest('.' + ptrFieldName).andSelf().hide();
             }
         });
@@ -160,7 +162,7 @@
         // ptrFieldSelected: Either false or, if the selected option points to
         // another field on the model (e.g. if the source was 'self.url'), the
         // name of the pointer field ('url' in the case of 'self.url').
-        var ptrFieldSelected = getActivePointerField($select);
+        var ptrFieldSelected = getActivePointerField($select, true);
 
         // The data-old-value attribute on the generic content-type's
         // object_id field is a javascript object keyed on the select field's
@@ -282,7 +284,7 @@
                 inlineRelatedId = prefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2'),
                 $inlineRelated = $('#' + inlineRelatedId),
                 $select = $field.curationCtField(),
-                ptrFieldSelected = getActivePointerField($select),
+                ptrFieldSelected = getActivePointerField($select, true),
                 $ptrField = $(evt.target),
                 fieldName = (ptrFieldSelected) ? ptrFieldSelected : $select.data('fkFieldName');
 
@@ -319,7 +321,7 @@
                     inlineRelatedId = prefix.replace(/^id_(.+)\-(\d+)\-$/, '$1$2'),
                     $inlineRelated = $('#' + inlineRelatedId),
                     $select = $('#' + prefix + ctFieldName),
-                    ptrFieldSelected = getActivePointerField($select),
+                    ptrFieldSelected = getActivePointerField($select, false),
                     $ptrField = $field,
                     fieldName = (ptrFieldSelected) ? ptrFieldSelected : $select.data('fkFieldName');
 
