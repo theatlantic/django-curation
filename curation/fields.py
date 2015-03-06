@@ -154,13 +154,9 @@ class ContentTypeSourceChoices(object):
             source_value, label = self.ct_lookup[ct_id]
         except KeyError:
             try:
-                if hasattr(self, '_cache'):
-                    # This means we've already iterated, no point doing it again
-                    raise
-                else:
-                    # Iterate through self to populate ct_lookup
-                    list(self)
-                    source_value, label = self.ct_lookup[ct_id]
+                # Iterate through self to populate ct_lookup
+                list(self)
+                source_value, label = self.ct_lookup[ct_id]
             except KeyError:
                 errors = {}
                 errors[self.field.name] = (
@@ -185,13 +181,9 @@ class ContentTypeSourceChoices(object):
             ct_id, label = self.source_value_lookup[source_value]
         except KeyError:
             try:
-                if hasattr(self, '_cache'):
-                    # This means we've already iterated, no point doing it again
-                    raise
-                else:
-                    # Iterate through self to populate ct_lookup
-                    list(self)
-                    ct_id, label = self.source_value_lookup[source_value]
+                # Iterate through self to populate ct_lookup
+                list(self)
+                ct_id, label = self.source_value_lookup[source_value]
             except KeyError:
                 errors = {}
                 errors[self.field.source_field_name] = (
@@ -206,15 +198,6 @@ class ContentTypeSourceChoices(object):
         return ct_id
 
     def __iter__(self):
-        try:
-            iter_cache = getattr(self, '_cache')
-        except AttributeError:
-            setattr(self, '_cache', [])
-        else:
-            for choice_item in iter_cache:
-                yield choice_item
-            raise StopIteration
-
         model_cls = getattr(self.field, 'model', None)
         for ct_choice in self.ct_choices:
             # We use a dict for the option value so we can add extra attributes
@@ -299,8 +282,7 @@ class ContentTypeSourceChoices(object):
                 if ContentType._meta.db_table in connection.introspection.table_names():
                     ct_model = models.get_model(app_label, model_name, False)
                     if not ct_model:
-                        raise exceptions.ImproperlyConfigured(
-                            u"Could not find model %s.%s" % (app_label, model_name))
+                        continue
                     # If we're running syncdb, django_content_type might not yet exist
                     ct_id = ContentType.objects.get_for_model(ct_model, False).pk
                 else:
@@ -314,7 +296,6 @@ class ContentTypeSourceChoices(object):
                 choice_item = (ct_value, label, source_value)
             else:
                 choice_item = (ct_value, label)
-            self._cache.append(choice_item)
             yield choice_item
 
     def check_field_exists(self, field_name):
