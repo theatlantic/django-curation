@@ -168,14 +168,14 @@ class CuratedItem(models.Model):
     #: A dict that maps field names in the proxy model (the to=... model in the
     #: CuratedForeignKey) to field names in the current model which can
     #: override them (provided their value is not None or an empty string).
-    #: 
+    #:
     #: This takes the form, e.g.::
-    #: 
+    #:
     #:     field_overrides = {
     #:         'title': 'custom_title',
     #:         'status': 'custom_status',
     #:     }
-    #: 
+    #:
     #: Where ``custom_title`` and ``custom_status`` are fields in the
     #: CuratedItem model, and ``title`` and ``status`` are fields in the
     #: proxy model.
@@ -213,8 +213,9 @@ class CuratedItem(models.Model):
 
         # We would get an infinite loop if self.field_overrides[attr] == attr
         if attr in self.field_overrides and self.field_overrides[attr] != attr:
-            val = getattr(self, self.field_overrides[attr])
-            if val or isinstance(val, bool):
+            sentinel_value = object()
+            val = getattr(self, self.field_overrides[attr], sentinel_value)
+            if val is not sentinel_value:
                 return val
 
         proxy_attrs = []
