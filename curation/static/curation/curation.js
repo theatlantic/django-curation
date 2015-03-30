@@ -192,10 +192,10 @@
 
         if (ptrFieldSelected) {
             $fkField.hide();
-            $fkField.closest('.row').hide();
+            $fkField.closest('.row,.grp-row').hide();
         } else {
             $fkField.show();
-            $fkField.closest('.row').show();
+            $fkField.closest('.row,.grp-row').show();
         }
 
         // If the content_type_id has changed to a value that was previously
