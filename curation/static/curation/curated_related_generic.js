@@ -66,7 +66,7 @@
     };
 
     var lookup_id = function($object_id, options) {
-        if (!window.DJCURATION || !DJCURATION.CONTENT_TYPES) {
+        if (!window.DJCURATION || !DJCURATION.CONTENT_TYPES || !DJCURATION.LOOKUP_URL) {
             return;
         }
 
