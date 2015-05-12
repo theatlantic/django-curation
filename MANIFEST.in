@@ -1,1 +1,2 @@
-include setup.py README.md MANIFEST.in LICENSE
+include README.md MANIFEST.in LICENSE
+recursive-include curation/static *
