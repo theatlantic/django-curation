@@ -59,6 +59,10 @@ class CuratedRelatedField(object):
         opts = related_cls._meta
         proxy_attrs = set([f.name for f in (opts.fields + opts.many_to_many)])
         proxy_attrs = proxy_attrs.union([k for k in related_cls.__dict__ if k not in skips])
+        for parent_cls in related_cls.__mro__:
+            if parent_cls in (object, models.Model):
+                continue
+            proxy_attrs = proxy_attrs.union([k for k in parent_cls.__dict__ if k not in skips])
         setattr(instance, '_proxy_attrs', proxy_attrs)
         setattr(instance, '_proxy_model', related_cls)
 
