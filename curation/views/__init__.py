@@ -122,11 +122,11 @@ def related_lookup(request):
             data = get_curated_item_for_request(request)
             if data is not None:
                 return HttpResponse(json.dumps(data, default=empty_json),
-                    mimetype='application/javascript')
+                    content_type='application/javascript')
 
     data = [{"value": None, "label": ""}]
     return HttpResponse(json.dumps(data),
-        mimetype='application/javascript')
+        content_type='application/javascript')
 
 
 related_lookup_url = None
@@ -181,4 +181,4 @@ def get_content_types(request):
             json.dumps(content_types),
             json.dumps(related_lookup_url),
             json.dumps(shortcut_url),))
-    return HttpResponse(ct_js.strip(), mimetype='application/javascript')
+    return HttpResponse(ct_js.strip(), content_type='application/javascript')
