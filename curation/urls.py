@@ -1,6 +1,7 @@
 import functools
 from django.contrib import admin
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
+
 from . import views as curation_views
 
 
