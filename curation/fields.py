@@ -348,7 +348,10 @@ class ContentTypeSourceDescriptor(ReverseSingleRelatedObjectDescriptor):
             else:
                 # Lookup the source_value that corresponds to this content
                 # type id
-                source_val = self.field.ct_choices.lookup_source_value(ct_id)
+                try:
+                    source_val = self.field.ct_choices.lookup_source_value(ct_id)
+                except:
+                    return
 
             # Check if the field already matches to avoid infinite loop
             curr_source_val = getattr(instance, source_field.name, None)
@@ -533,11 +536,12 @@ class ContentTypeSourceField(models.ForeignKey):
         setattr(cls, self.attname,
                 ContentTypeIdDescriptor(content_type_descriptor))
 
-        if isinstance(self.rel.to, basestring):
-            target = self.rel.to
-        else:
-            target = self.rel.to._meta.db_table
-        cls._meta.duplicate_targets[self.column] = (target, "o2m")
+        if hasattr(cls._meta, "duplicate_targets"):  # Django<1.5
+            if isinstance(self.rel.to, basestring):
+                target = self.rel.to
+            else:
+                target = self.rel.to._meta.db_table
+            cls._meta.duplicate_targets[self.column] = (target, "o2m")
 
         # Get source field, if the field name was passed in init, and set its
         # choices
