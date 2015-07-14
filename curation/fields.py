@@ -1,6 +1,7 @@
 from collections import Mapping
 import textwrap
 
+import django
 from django.core import exceptions, validators
 from django.db import models, connection
 from django.db.models.fields import FieldDoesNotExist
@@ -12,9 +13,12 @@ from django.utils.functional import cached_property
 from django.utils.text import capfirst
 
 from .generic import GenericForeignKey
-from .models import ContentType
 from .widgets import SourceSelect
 
+if django.VERSION < (1, 6):
+    from .models import ContentType
+else:
+    from django.contrib.contenttypes.models import ContentType
 
 class CuratedRelatedField(object):
     """
@@ -253,7 +257,11 @@ class ContentTypeSourceChoices(object):
                 # model that the field is defined on (which would indicate
                 # that we should treat it the same as we would 'self.field_name'
                 if field_name and model_cls:
-                    ct_model = models.get_model(app_label, model_name, False)
+                    try:
+                        ct_model = models.get_model(app_label, model_name, False)
+                    except TypeError:
+                        # Django 1.7+
+                        ct_model = models.get_model(app_label, model_name)
                     if ct_model and ct_model._meta.proxy and ct_model._meta.concrete_model == model_cls:
                         if ContentType._meta.db_table in connection.introspection.table_names():
                             try:
@@ -284,7 +292,11 @@ class ContentTypeSourceChoices(object):
             # content_type_id for the app_label and model_name
             if app_label != 'self':
                 if ContentType._meta.db_table in connection.introspection.table_names():
-                    ct_model = models.get_model(app_label, model_name, False)
+                    try:
+                        ct_model = models.get_model(app_label, model_name, False)
+                    except TypeError:
+                        # Django 1.7+
+                        ct_model = models.get_model(app_label, model_name)
                     if not ct_model:
                         continue
                     # If we're running syncdb, django_content_type might not yet exist
