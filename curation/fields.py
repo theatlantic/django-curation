@@ -9,7 +9,7 @@ from django.db.models.fields.related import ForeignKey
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
 from django import forms
 from django.utils.encoding import force_unicode, smart_unicode
-from django.utils.functional import cached_property
+from django.utils.functional import cached_property, lazy
 from django.utils.text import capfirst
 
 from .generic import GenericForeignKey
@@ -452,6 +452,13 @@ class SourceFieldDescriptor(object):
             setattr(instance, self.ct_field.attname, ct_id)
 
 
+def get_content_type_id_for_model(model):
+    return ContentType.objects.get_for_model(model, False).pk
+
+
+lazy_get_content_type_id_for_model = lazy(get_content_type_id_for_model, int)
+
+
 class ContentTypeChoiceField(forms.TypedChoiceField):
     """
     Formfield for ContentTypeSourceField
@@ -467,7 +474,7 @@ class ContentTypeChoiceField(forms.TypedChoiceField):
             'data-field-name': field.name,
             'data-ct-field-name': field.name,
             # The content-type-id of the model the field is defined on
-            'data-content-type-id': ContentType.objects.get_for_model(field.model, False).pk,
+            'data-content-type-id': lazy_get_content_type_id_for_model(field.model),
             'data-fk-field-name': field.fk_field,})
         super(ContentTypeChoiceField, self).__init__(*args, **kwargs)
 
