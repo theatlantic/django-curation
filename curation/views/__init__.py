@@ -2,7 +2,12 @@ import textwrap
 import json
 
 from django.core.urlresolvers import reverse, NoReverseMatch
-from django.db import models
+try:
+    from django.apps import apps
+except ImportError:
+    from django.db.models.loading import get_model
+else:
+    get_model = apps.get_model
 from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.cache import never_cache
 
@@ -62,7 +67,7 @@ def get_curated_item_for_request(request):
     except (TypeError, ValueError):
         return None
 
-    ct_model_cls = models.get_model(app_label, model_name)
+    ct_model_cls = get_model(app_label, model_name)
     if ct_model_cls is None:
         return data
     ct_id = ContentType.objects.get_for_model(ct_model_cls, False)

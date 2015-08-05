@@ -3,7 +3,10 @@ from collections import Mapping
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.forms import widgets
-from django.forms.util import flatatt
+try:
+    from django.forms.utils import flatatt
+except ImportError:
+    from django.forms.util import flatatt
 from django.utils.encoding import force_unicode
 from django.utils.html import conditional_escape
 

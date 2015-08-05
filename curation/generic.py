@@ -1,9 +1,13 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import signals
-from django.contrib.contenttypes import generic
+
+try:
+    from django.contrib.contenttypes.fields import GenericForeignKey as _GenericForeignKey
+except ImportError:
+    from django.contrib.contenttypes.generic import GenericForeignKey as _GenericForeignKey
 
 
-class GenericForeignKey(generic.GenericForeignKey):
+class GenericForeignKey(_GenericForeignKey):
     """
     Provides a generic relation to any object through content-type/object-id
     fields.

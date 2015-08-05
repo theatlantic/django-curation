@@ -4,6 +4,12 @@ import textwrap
 import django
 from django.core import exceptions, validators
 from django.db import models, connection
+try:
+    from django.apps import apps
+except ImportError:
+    from django.db.models.loading import get_model
+else:
+    get_model = apps.get_model
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.fields.related import ForeignKey
 from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
@@ -258,10 +264,10 @@ class ContentTypeSourceChoices(object):
                 # that we should treat it the same as we would 'self.field_name'
                 if field_name and model_cls:
                     try:
-                        ct_model = models.get_model(app_label, model_name, False)
+                        ct_model = get_model(app_label, model_name, False)
                     except TypeError:
                         # Django 1.7+
-                        ct_model = models.get_model(app_label, model_name)
+                        ct_model = get_model(app_label, model_name)
                     if ct_model and ct_model._meta.proxy and ct_model._meta.concrete_model == model_cls:
                         if ContentType._meta.db_table in connection.introspection.table_names():
                             try:
@@ -293,10 +299,10 @@ class ContentTypeSourceChoices(object):
             if app_label != 'self':
                 if ContentType._meta.db_table in connection.introspection.table_names():
                     try:
-                        ct_model = models.get_model(app_label, model_name, False)
+                        ct_model = get_model(app_label, model_name, False)
                     except TypeError:
                         # Django 1.7+
-                        ct_model = models.get_model(app_label, model_name)
+                        ct_model = get_model(app_label, model_name)
                     if not ct_model:
                         continue
                     # If we're running syncdb, django_content_type might not yet exist
