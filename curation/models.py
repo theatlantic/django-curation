@@ -240,7 +240,7 @@ class CuratedItem(models.Model):
                 self.__getattribute__(curated_field_name)
                 proxy_attrs = self.__dict__.get('_proxy_attrs', [])
         else:
-            proxy_attrs = getattr(self._meta, '_proxy_attrs', [])
+            proxy_attrs = getattr(getattr(self, curated_field_name)._meta, '_proxy_attrs', [])
 
         if attr in proxy_attrs:
             try:
