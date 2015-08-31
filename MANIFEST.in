@@ -1,2 +1,2 @@
-include README.md MANIFEST.in LICENSE
+include README.md README.rst MANIFEST.in LICENSE
 recursive-include curation/static *
