@@ -26,6 +26,25 @@ if django.VERSION < (1, 6):
 else:
     from django.contrib.contenttypes.models import ContentType
 
+
+_ctype_table_exists = False
+
+
+def ctype_table_exists():
+    """
+    Since the ContentType table will never go from existing to not
+    existing, we only care up until the point where it does exist. And then we
+    can cache that value to prevent a ton of extraneous "SHOW FULL TABLES"
+    queries.
+    """
+    global _ctype_table_exists
+    if _ctype_table_exists:
+        return _ctype_table_exists
+
+    _ctype_table_exists = ContentType._meta.db_table in connection.introspection.table_names()
+    return _ctype_table_exists
+
+
 class CuratedRelatedField(object):
     """
     A ForeignKey that gets a list of the __dict__ keys and field names of the
@@ -269,7 +288,7 @@ class ContentTypeSourceChoices(object):
                         # Django 1.7+
                         ct_model = get_model(app_label, model_name)
                     if ct_model and ct_model._meta.proxy and ct_model._meta.concrete_model == model_cls:
-                        if ContentType._meta.db_table in connection.introspection.table_names():
+                        if ctype_table_exists():
                             try:
                                 ct_id = ContentType.objects.get_for_model(ct_model, False).pk
                             except AttributeError:
@@ -287,7 +306,7 @@ class ContentTypeSourceChoices(object):
 
                     if not ct_id and not model_cls._meta.abstract:
                         # If we're running syncdb, django_content_type might not yet exist
-                        if ContentType._meta.db_table in connection.introspection.table_names():
+                        if ctype_table_exists():
                             try:
                                 ct_id = ContentType.objects.get_for_model(model_cls, False).pk
                             except (model_cls.DoesNotExist, AttributeError):
@@ -297,7 +316,7 @@ class ContentTypeSourceChoices(object):
             # If the relation isn't of the form 'self.field_name', grab the
             # content_type_id for the app_label and model_name
             if app_label != 'self':
-                if ContentType._meta.db_table in connection.introspection.table_names():
+                if ctype_table_exists():
                     try:
                         ct_model = get_model(app_label, model_name, False)
                     except TypeError:
