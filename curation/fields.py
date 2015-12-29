@@ -291,7 +291,7 @@ class ContentTypeSourceChoices(object):
                         if ctype_table_exists():
                             try:
                                 ct_id = ContentType.objects.get_for_model(ct_model, False).pk
-                            except AttributeError:
+                            except (AttributeError, RuntimeError):
                                 pass
                             else:
                                 app_label = 'self'
@@ -309,7 +309,7 @@ class ContentTypeSourceChoices(object):
                         if ctype_table_exists():
                             try:
                                 ct_id = ContentType.objects.get_for_model(model_cls, False).pk
-                            except (model_cls.DoesNotExist, AttributeError):
+                            except (model_cls.DoesNotExist, AttributeError, RuntimeError):
                                 # We haven't done a syncdb or migration yet
                                 pass
 
