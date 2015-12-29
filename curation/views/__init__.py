@@ -162,8 +162,7 @@ def get_content_types(request):
                     'admin:%s_%s_changelist' % (ct['app_label'], ct['model']))
             except NoReverseMatch:
                 pass
-            else:
-                content_types[ct['pk']] = ct
+            content_types[ct['pk']] = ct
 
     ct_js = textwrap.dedent(u"""
         var DJCURATION = (typeof window.DJCURATION != "undefined")
@@ -180,6 +179,15 @@ def get_content_types(request):
                 return urlTemplate.replace(templateRegex, function(match, p1, offset, string) {
                     return (args[p1]) ? args[p1] : '0';
                 });
+            };
+
+            DJCURATION.getContentType = function(app_label, model) {
+                for (var id in DJCURATION.CONTENT_TYPES) {
+                    var ct = DJCURATION.CONTENT_TYPES[id];
+                    if (ct.app_label == app_label && ct.model == model) {
+                        return ct;
+                    }
+                }
             };
 
         })();""" % (
