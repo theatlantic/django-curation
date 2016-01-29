@@ -1,6 +1,6 @@
 import functools
 from django.contrib import admin
-from django.conf.urls import patterns, url
+from django.conf.urls import url
 
 from . import views as curation_views
 
@@ -14,7 +14,7 @@ def wrap(view, cacheable=False):
     return functools.update_wrapper(wrapper, view)
 
 
-urlpatterns = patterns('',
+urlpatterns = [
     url(r'^content-type-list\.js$',
         wrap(curation_views.get_content_types), # 'curation.views.get_content_types',
         name="curation_content_type_list"),
@@ -24,4 +24,4 @@ urlpatterns = patterns('',
     url(r'^r/(?P<content_type_id>\d+)/(?P<object_id>.+)/$',
         wrap(curation_views.shortcut),
         name="curation_shortcut"),
-)
+]
