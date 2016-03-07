@@ -116,10 +116,10 @@
             if ($option.attr('value') == selectValue) {
                 activePtrFieldName = ptrFieldName;
                 if (toggleVisibility) {
-                    $ptrField.closest('.' + ptrFieldName).andSelf().show();
+                    $ptrField.closest('.row,.grp-row').andSelf().show();
                 }
             } else if (toggleVisibility) {
-                $ptrField.val('').closest('.' + ptrFieldName).andSelf().hide();
+                $ptrField.val('').closest('.row,.grp-row').andSelf().hide();
             }
         });
         var $fkField = $select.curationFkField();
@@ -366,12 +366,10 @@
         } else {
             elem.value = chosenId;
         }
-        $elem = $(elem);
 
         // This line is the only change from Grappeli
-        $elem.trigger('change');
+        $(elem).trigger('change');
 
-        var title = (typeof targetElement == 'object') ? targetElement.innerHTML : null;
         win.close();
     };
 
