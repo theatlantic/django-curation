@@ -348,7 +348,7 @@
 
     $(document).ready(function() {
         // Iterate through curated content_type select elements
-        $('.curated-content-type-select').each(function(index, element) {
+        $('.curated-content-type-select:not([id*="__prefix__"]').each(function(index, element) {
             $(element).curated_content_type();
         });
     });
