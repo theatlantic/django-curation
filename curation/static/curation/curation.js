@@ -348,8 +348,12 @@
 
     $(document).ready(function() {
         // Iterate through curated content_type select elements
-        $('.curated-content-type-select:not([id*="__prefix__"]').each(function(index, element) {
-            $(element).curated_content_type();
+        $('.curated-content-type-select').each(function() {
+            // Skip Django 'empty' forms
+            if (this.id.indexOf("__prefix__") > -1) {
+                return;
+            }
+            $(this).curated_content_type();
         });
     });
 
