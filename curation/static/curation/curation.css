@@ -1,5 +1,8 @@
 input.curated-object-id {
+    position: relative;
+    top: -3px;
     width: 10em;
+    height: 24px;
 }
 
 .curated-object-id-row > div > .span-flexible {
@@ -11,7 +14,7 @@ input.curated-object-id {
 }
 
 a.curated-related-lookup {
-    border: 1px solid #ccc;
+    border: 1px solid #aaa;
     background-color: #E1F0F5;
     display: inline-block;
     margin-bottom: -5px;
@@ -52,7 +55,7 @@ a.curated-related-lookup:hover, a.curated-related-lookup:active {
 a.curated-related-lookup + span.curated-related-label {
     color: #555;
     position: relative;
-    top: -4px;
+    top: -3px;
     margin-left: 5px;
     font-size: 11px;
     font-weight: bold;

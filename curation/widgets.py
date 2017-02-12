@@ -1,7 +1,6 @@
 from collections import Mapping
 
 from django.core.urlresolvers import reverse
-from django.conf import settings
 from django.forms import widgets
 try:
     from django.forms.utils import flatatt
@@ -17,10 +16,10 @@ class SourceSelect(widgets.Select):
         media = widgets.Media()
         media.add_js((
             reverse('curation_content_type_list'),
-            settings.STATIC_URL + 'curation/curated_related_generic.js?v=2',
-            settings.STATIC_URL + 'curation/curation.js?v=2',))
+            'curation/curated_related_generic.js',
+            'curation/curation.js',))
         media.add_css({
-                'all': (settings.STATIC_URL + 'curation/curation.css',)})
+                'all': ('curation/curation.css',)})
         return media
     media = property(_media)
 
