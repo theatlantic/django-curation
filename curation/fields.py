@@ -493,7 +493,7 @@ class ContentTypeChoiceField(forms.TypedChoiceField):
     """
 
     def __init__(self, *args, **kwargs):
-        field = kwargs.pop('field', None)
+        field = getattr(self, 'field', None)
         kwargs['widget'] = SourceSelect(attrs={
             'class': 'curated-content-type-select',
             'data-field-name': field.name,
@@ -637,58 +637,8 @@ class ContentTypeSourceField(models.ForeignKey):
             raise exceptions.ValidationError(self.error_messages['blank'])
 
     def formfield(self, **kwargs):
-        """
-        Returns a django.forms.Field instance for this database Field.
-
-        Rather annoyingly, the parent method does not allow you to override
-        the form_class kwarg if self.choices is not None. You have to copy
-        and paste everything.
-        """
-        if not self.choices:
-            return super(ContentTypeSourceField, self).formfield(**kwargs)
-
-        defaults = {
-            'required': not self.blank,
-            'label': capfirst(self.verbose_name),
-            'help_text': self.help_text,
-        }
-        # Many of the subclass-specific formfield arguments (min_value,
-        # max_value) don't apply for choice fields, so be sure to only pass
-        # the values that TypedChoiceField will understand.
-        for k in kwargs.keys():
-            if k not in ('coerce', 'empty_value', 'choices', 'required',
-                         'widget', 'label', 'initial', 'help_text',
-                         'error_messages', 'show_hidden_initial'):
-                del kwargs[k]
-
-        defaults.update(kwargs)
-
-        if self.has_default():
-            if callable(self.default):
-                defaults['initial'] = self.default
-                defaults['show_hidden_initial'] = True
-            else:
-                defaults['initial'] = self.get_default()
-
-        include_blank = self.blank or not (self.has_default() or 'initial' in kwargs)
-        defaults['choices'] = self.get_choices(include_blank=include_blank)
-        defaults['coerce'] = self.to_python
-        if self.null:
-            defaults['empty_value'] = None
-
-        defaults['field'] = self
-
-        # All of the above is copy-pasted just so we can set this
-        form_class = ContentTypeChoiceField
-
-        return form_class(**defaults)
-
-
-try:
-    from south.modelsinspector import add_introspection_rules
-except ImportError:
-    pass
-else:
-    add_introspection_rules([], ["^curation\.fields\.CuratedForeignKey"])
-    add_introspection_rules([], ["^curation\.fields\.CuratedGenericForeignKey"])
-    add_introspection_rules([], ["^curation\.fields\.ContentTypeSourceField"])
+        choice_form_class = type('ContentTypeChoiceField', (ContentTypeChoiceField,), {
+            'field': self,
+        })
+        kwargs.setdefault('choices_form_class', choice_form_class)
+        return super(ContentTypeSourceField, self).formfield(**kwargs)
