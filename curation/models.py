@@ -275,6 +275,5 @@ class CuratedItem(models.Model):
                                     "model_name": self._meta.object_name,
                                     "fk_str": fk_str,
                                 })
-
         raise AttributeError("'%s' object has no attribute '%s'" % \
             (self.__class__.__name__, attr))
