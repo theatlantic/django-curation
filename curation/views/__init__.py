@@ -87,12 +87,14 @@ def get_curated_item_for_request(request):
     if curated_field_name is None:
         return None
 
+    fk_data = None
     try:
         fk_obj = getattr(curated_item, curated_field_name)
     except:
-        fk_data = None
+        pass
     else:
-        fk_data = get_common_field_values(model_cls, fk_obj)
+        if fk_obj:
+            fk_data = get_common_field_values(model_cls, fk_obj)
 
     data.update({"fk": fk_data})
 
