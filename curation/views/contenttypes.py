@@ -10,9 +10,14 @@ the django_content_type table.
 
 from django import http
 from ..models import ContentType
-from django.contrib.sites.models import Site, get_current_site
+from django.contrib.sites.models import Site
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext as _
+
+try:
+    from django.contrib.sites.shortcuts import get_current_site
+except ImportError:
+    from django.contrib.sites.models import get_current_site
 
 
 def shortcut(request, content_type_id, object_id):

@@ -12,7 +12,11 @@ else:
     get_model = apps.get_model
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.fields.related import ForeignKey
-from django.db.models.fields.related import ReverseSingleRelatedObjectDescriptor
+try:
+    from django.db.models.fields.related import (
+        ReverseSingleRelatedObjectDescriptor as ForwardManyToOneDescriptor)
+except ImportError:
+    from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 from django import forms
 from django.utils.encoding import force_unicode, smart_unicode
 from django.utils.functional import cached_property, lazy
@@ -354,7 +358,7 @@ class ContentTypeSourceChoices(object):
                 opts.object_name, field_name))
 
 
-class ContentTypeSourceDescriptor(ReverseSingleRelatedObjectDescriptor):
+class ContentTypeSourceDescriptor(ForwardManyToOneDescriptor):
     """
     The descriptor for ContentTypeSourceField (the ForeignKey to ContentType)
 
@@ -570,7 +574,7 @@ class ContentTypeSourceField(models.ForeignKey):
             kwargs['choices'] = ContentTypeIdChoices(self.ct_choices)
         kwargs.pop('to', None)
         self.source_field_name = kwargs.pop('source_field', None)
-        super(ContentTypeSourceField, self).__init__(ContentType, *args, **kwargs)
+        super(ContentTypeSourceField, self).__init__('contenttypes.ContentType', *args, **kwargs)
 
     def contribute_to_class(self, cls, name):
         super(models.ForeignKey, self).contribute_to_class(cls, name)
