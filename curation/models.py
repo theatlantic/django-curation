@@ -1,9 +1,11 @@
+import django
 from django.db import models, router
 from django.db.models.base import ModelBase
 from django.contrib.contenttypes import models as ct_models
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.encoding import smart_unicode
 
+from . import IS_DJANGO_GTE_1_11
 from .base import CuratedItemModelBase
 
 
@@ -17,7 +19,7 @@ class ContentTypeManager(ct_models.ContentTypeManager):
     def _get_opts(self, model, for_concrete_model):
         if for_concrete_model:
             model = model._meta.concrete_model
-        elif model._deferred:
+        elif not IS_DJANGO_GTE_1_11 and model._deferred:
             model = model._meta.proxy_for_model
         return model._meta
 
@@ -34,10 +36,16 @@ class ContentTypeManager(ct_models.ContentTypeManager):
             # Load or create the ContentType entry. The smart_unicode() is
             # needed around opts.verbose_name_raw because name_raw might be a
             # django.utils.functional.__proxy__ object.
+            defaults = (
+                None
+                if IS_DJANGO_GTE_1_11
+                else {'name': smart_unicode(opts.verbose_name_raw)}
+            )
+
             ct, created = self.get_or_create(
                 app_label = opts.app_label,
                 model = opts.object_name.lower(),
-                defaults = {'name': smart_unicode(opts.verbose_name_raw)},
+                defaults=defaults
             )
             self._add_to_cache(self.db, ct)
 

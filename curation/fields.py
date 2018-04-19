@@ -22,6 +22,7 @@ from django.utils.encoding import force_unicode, smart_unicode
 from django.utils.functional import cached_property, lazy
 from django.utils.text import capfirst
 
+from . import IS_DJANGO_GTE_1_11
 from .generic import GenericForeignKey
 from .widgets import SourceSelect
 
@@ -350,7 +351,8 @@ class ContentTypeSourceChoices(object):
         """
         model_cls = self.field.model
         opts = model_cls._meta
-        fields = opts.local_fields + opts.local_many_to_many + opts.virtual_fields
+        private_fields = opts.private_fields if IS_DJANGO_GTE_1_11 else opts.virtual_fields
+        fields = opts.local_fields + opts.local_many_to_many + private_fields
         try:
             [f for f in fields if f.name == field_name][0]
         except IndexError:
@@ -574,6 +576,7 @@ class ContentTypeSourceField(models.ForeignKey):
             kwargs['choices'] = ContentTypeIdChoices(self.ct_choices)
         kwargs.pop('to', None)
         self.source_field_name = kwargs.pop('source_field', None)
+        kwargs.setdefault('on_delete', models.CASCADE)
         super(ContentTypeSourceField, self).__init__('contenttypes.ContentType', *args, **kwargs)
 
     def contribute_to_class(self, cls, name):
@@ -617,8 +620,10 @@ class ContentTypeSourceField(models.ForeignKey):
         if not self.editable:
             # Skip validation for non-editable fields.
             return
-        if self._choices and value:
-            for option_key, option_value in self.choices:
+
+        choices = self.choices if IS_DJANGO_GTE_1_11 else self._choices
+        if choices and value:
+            for option_key, option_value in choices:
                 if isinstance(option_value, (list, tuple)):
                     # This is an optgroup, so look inside the group for options.
                     for optgroup_key, optgroup_value in option_value:
