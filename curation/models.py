@@ -17,8 +17,6 @@ class ContentTypeManager(ct_models.ContentTypeManager):
     def _get_opts(self, model, for_concrete_model):
         if for_concrete_model:
             model = model._meta.concrete_model
-        elif model._deferred:
-            model = model._meta.proxy_for_model
         return model._meta
 
     def get_for_model(self, model, for_concrete_model=True):
@@ -37,7 +35,6 @@ class ContentTypeManager(ct_models.ContentTypeManager):
             ct, created = self.get_or_create(
                 app_label = opts.app_label,
                 model = opts.object_name.lower(),
-                defaults = {'name': smart_unicode(opts.verbose_name_raw)},
             )
             self._add_to_cache(self.db, ct)
 
