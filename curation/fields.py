@@ -574,6 +574,7 @@ class ContentTypeSourceField(models.ForeignKey):
             kwargs['choices'] = ContentTypeIdChoices(self.ct_choices)
         kwargs.pop('to', None)
         self.source_field_name = kwargs.pop('source_field', None)
+        kwargs.setdefault('on_delete', models.CASCADE)
         super(ContentTypeSourceField, self).__init__('contenttypes.ContentType', *args, **kwargs)
 
     def contribute_to_class(self, cls, name):
