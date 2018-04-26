@@ -350,7 +350,7 @@ class ContentTypeSourceChoices(object):
         """
         model_cls = self.field.model
         opts = model_cls._meta
-        fields = opts.local_fields + opts.local_many_to_many + opts.virtual_fields
+        fields = opts.local_fields + opts.local_many_to_many + opts.private_fields
         try:
             [f for f in fields if f.name == field_name][0]
         except IndexError:
