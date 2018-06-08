@@ -11,7 +11,7 @@ else:
 from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.cache import never_cache
 
-from ..models import ContentType
+from django.contrib.contenttypes.models import ContentType
 
 # The version of django.contrib.contenttypes.views.shortcut with a bug fixed
 # for multi-db setups

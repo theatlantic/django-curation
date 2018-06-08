@@ -1,6 +1,3 @@
-from collections import Mapping
-import textwrap
-
 import django
 from django.core import exceptions, validators
 from django.db import models, connection
@@ -18,36 +15,24 @@ try:
 except ImportError:
     from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 from django import forms
-from django.utils.encoding import force_unicode, smart_unicode
+from django.utils.encoding import force_text
 from django.utils.functional import cached_property, lazy
-from django.utils.text import capfirst
+from django.utils import six
 
-from . import IS_DJANGO_GTE_1_11
 from .generic import GenericForeignKey
 from .widgets import SourceSelect
 
-if django.VERSION < (1, 6):
-    from .models import ContentType
-else:
-    from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.models import ContentType
 
 
-_ctype_table_exists = False
+IS_DJANGO_GTE_1_11 = (django.VERSION >= (1, 11))
 
 
-def ctype_table_exists():
-    """
-    Since the ContentType table will never go from existing to not
-    existing, we only care up until the point where it does exist. And then we
-    can cache that value to prevent a ton of extraneous "SHOW FULL TABLES"
-    queries.
-    """
-    global _ctype_table_exists
-    if _ctype_table_exists:
-        return _ctype_table_exists
+def get_content_type_id_for_model(model):
+    return ContentType.objects.get_for_model(model, False).pk
 
-    _ctype_table_exists = ContentType._meta.db_table in connection.introspection.table_names()
-    return _ctype_table_exists
+
+lazy_get_content_type_id_for_model = lazy(get_content_type_id_for_model, str)
 
 
 class CuratedRelatedField(object):
@@ -164,13 +149,6 @@ class ContentTypeSourceChoices(object):
     # not have a source_value
     SOURCE_UNDEFINED = type('SOURCE_UNDEFINED', (object,), {})
 
-    error_msgs = {
-        'num_items': textwrap.dedent(u"""
-            All tuple items in {field_cls}.ct_choices must have two items
-            (relation, label,) or three items (relation, label, source_value,)
-            """).strip()
-    }
-
     def __init__(self, ct_choices, field):
         self.ct_choices = ct_choices
         self.field = field
@@ -178,33 +156,44 @@ class ContentTypeSourceChoices(object):
         self.source_value_lookup = {}
         self.ct_ids = set([])
         self.source_values = set([])
-        self.error_msgs['num_items'] = self.error_msgs['num_items'].format(**{
-            'field_cls': self.field.__class__.__name__,})
+        self.error_msgs = {
+            'num_items': ((
+                "All tuple items in %(field_cls)s.ct_choices must have two "
+                "items (relation, label,) or three items (relation, label, "
+                "source_value,)") % {'field_cls': type(self.field).__name__}),
+        }
 
-    def lookup_source_value(self, ct_id):
+    def lookup_source_value(self, ct_model_str):
         """
-        Look up the source_value associated with content_type_id=`ct_id`
+        Look up the source_value associated with a content_type string
         """
-        if ct_id is None:
+        if ct_model_str is None:
             return u""
 
+        ct_id = ct_model_str
+        if force_text(ct_model_str).isdigit():
+            ct_id = int(force_text(ct_model_str))
+        if isinstance(ct_id, six.integer_types):
+            ct_obj = ContentType.objects.get(pk=ct_id)
+            ct_model_str = "%s.%s" % (ct_obj.app_label, ct_obj.model)
+
         try:
-            source_value, label = self.ct_lookup[ct_id]
+            source_value, labeal = self.ct_lookup[ct_model_str]
         except KeyError:
             try:
                 # Iterate through self to populate ct_lookup
                 list(self)
-                source_value, label = self.ct_lookup[ct_id]
+                source_value, label = self.ct_lookup[ct_model_str]
             except KeyError:
                 errors = {}
                 errors[self.field.name] = (
                     u"Field %(field_name)s on %(app_label)s.%(model_name)s "
                     u"does not have a ct_choice item with "
-                    u"ContentType.id=%(ct_id)d") % {
+                    u"ContentType string = %(ct_model_str)s") % {
                         'field_name': self.field.source_field_name,
                         'app_label': self.field.model._meta.app_label,
                         'model_name': self.field.model._meta.object_name,
-                        'ct_id': ct_id,}
+                        'ct_model_str': ct_model_str}
                 raise exceptions.ValidationError(errors)
         return source_value
 
@@ -212,7 +201,7 @@ class ContentTypeSourceChoices(object):
         """
         Look up the content_type_id associated with the source value `source_value`
         """
-        if source_value is None or force_unicode(source_value) is u"":
+        if source_value is None or force_text(source_value) is u"":
             return None
 
         try:
@@ -231,7 +220,7 @@ class ContentTypeSourceChoices(object):
                         'field_name': self.field.name,
                         'app_label': self.field.model._meta.app_label,
                         'model_name': self.field.model._meta.object_name,
-                        'source_value': source_value,}
+                        'source_value': source_value}
                 raise exceptions.ValidationError(errors)
         return ct_id
 
@@ -239,8 +228,7 @@ class ContentTypeSourceChoices(object):
         model_cls = getattr(self.field, 'model', None)
         for ct_choice in self.ct_choices:
             # We use a dict for the option value so we can add extra attributes
-            ct_value = {'class': u'curated-content-type-option'}
-
+            ct_value = {'class': u'curated-content-type-option', 'value': None}
             # Grab relation and label from the first two items in the tuple
             relation, label = ct_choice[0:2]
 
@@ -265,6 +253,7 @@ class ContentTypeSourceChoices(object):
             # app_label and model_name (or field_name, if 'self.something')
             field_name = None
             ct_id = None
+            ct_model = None
 
             # Check for 'app_label.model_name:field' syntax
             try:
@@ -292,14 +281,9 @@ class ContentTypeSourceChoices(object):
                     except TypeError:
                         # Django 1.7+
                         ct_model = get_model(app_label, model_name)
-                    if ct_model and ct_model._meta.proxy and ct_model._meta.concrete_model == model_cls:
-                        if ctype_table_exists():
-                            try:
-                                ct_id = ContentType.objects.get_for_model(ct_model, False).pk
-                            except (AttributeError, RuntimeError):
-                                pass
-                            else:
-                                app_label = 'self'
+                    if ct_model._meta.proxy and ct_model._meta.concrete_model == model_cls:
+                        ct_id = lazy_get_content_type_id_for_model(ct_model)
+                        app_label = 'self'
 
                 if app_label == 'self' and model_cls:
                     if not field_name:
@@ -308,36 +292,21 @@ class ContentTypeSourceChoices(object):
                     # We access this value after render with javascript
                     ct_value['data-field-name'] = field_name
                     ct_value['class'] += u' curated-content-type-ptr'
-
-                    if not ct_id and not model_cls._meta.abstract:
-                        # If we're running syncdb, django_content_type might not yet exist
-                        if ctype_table_exists():
-                            try:
-                                ct_id = ContentType.objects.get_for_model(model_cls, False).pk
-                            except (model_cls.DoesNotExist, AttributeError, RuntimeError):
-                                # We haven't done a syncdb or migration yet
-                                pass
+                    if ct_model is None:
+                        ct_model = model_cls
+                        ct_id = lazy_get_content_type_id_for_model(ct_model)
 
             # If the relation isn't of the form 'self.field_name', grab the
             # content_type_id for the app_label and model_name
             if app_label != 'self':
-                if ctype_table_exists():
-                    try:
-                        ct_model = get_model(app_label, model_name, False)
-                    except TypeError:
-                        # Django 1.7+
-                        ct_model = get_model(app_label, model_name)
-                    if not ct_model:
-                        continue
-                    # If we're running syncdb, django_content_type might not yet exist
-                    ct_id = ContentType.objects.get_for_model(ct_model, False).pk
-                else:
-                    ct_id = None
+                ct_model = get_model(app_label, model_name)
+                ct_id = lazy_get_content_type_id_for_model(ct_model)
 
             ct_value['value'] = ct_id
+            ct_model_str = "%s.%s" % (ct_model._meta.app_label, ct_model._meta.model_name)
 
             if source_value is not self.SOURCE_UNDEFINED:
-                self.ct_lookup[ct_id] = (source_value, label)
+                self.ct_lookup[ct_model_str] = (source_value, label)
                 self.source_value_lookup[source_value] = (ct_id, label)
                 choice_item = (ct_value, label, source_value)
             else:
@@ -377,8 +346,13 @@ class ContentTypeSourceDescriptor(ForwardManyToOneDescriptor):
         return super(ContentTypeSourceDescriptor, self).__get__(instance, instance_type)
 
     def __set__(self, instance, value):
-        if isinstance(value, basestring) and value.isdigit():
-            value = ContentType.objects.get_for_id(int(value))
+        if not isinstance(value, models.Model):
+            try:
+                value = int("%s" % value)
+            except:
+                pass
+        if isinstance(value, six.integer_types):
+            value = ContentType.objects.get_for_id(value)
 
         super(ContentTypeSourceDescriptor, self).__set__(instance, value)
 
@@ -483,13 +457,6 @@ class SourceFieldDescriptor(object):
             setattr(instance, self.ct_field.attname, ct_id)
 
 
-def get_content_type_id_for_model(model):
-    return ContentType.objects.get_for_model(model, False).pk
-
-
-lazy_get_content_type_id_for_model = lazy(get_content_type_id_for_model, str)
-
-
 class ContentTypeChoiceField(forms.TypedChoiceField):
     """
     Formfield for ContentTypeSourceField
@@ -506,7 +473,7 @@ class ContentTypeChoiceField(forms.TypedChoiceField):
             'data-ct-field-name': field.name,
             # The content-type-id of the model the field is defined on
             'data-content-type-id': lazy_get_content_type_id_for_model(field.model),
-            'data-fk-field-name': field.fk_field,})
+            'data-fk-field-name': field.fk_field})
         super(ContentTypeChoiceField, self).__init__(*args, **kwargs)
 
     def valid_value(self, value):
@@ -516,18 +483,23 @@ class ContentTypeChoiceField(forms.TypedChoiceField):
         Since we have store the choices values as dictionaries, we need
         to override this method to prevent a ValidationError
         """
+        value = force_text(value)
         for k, v in self.choices:
             if isinstance(v, (list, tuple)):
                 # This is an optgroup, so look inside the group for options
                 for k2, v2 in v:
-                    if isinstance(k2, Mapping) and "value" in k2:
-                        k2 = k2["value"]
-                    if value == smart_unicode(k2):
+                    try:
+                        k2 = k2['value']
+                    except:
+                        pass
+                    if value == force_text(k2):
                         return True
             else:
-                if isinstance(k, Mapping) and "value" in k:
-                    k = k["value"]
-                if value == smart_unicode(k):
+                try:
+                    k = k['value']
+                except:
+                    pass
+                if value == force_text(k):
                     return True
         return False
 
@@ -606,7 +578,8 @@ class ContentTypeSourceField(models.ForeignKey):
         if not self.source_field_name:
             return None
         source_field = self.model._meta.get_field(self.source_field_name)
-        setattr(source_field, '_choices', SourceChoices(self.ct_choices))
+        choices_attr = 'choices' if django.VERSION > (1, 11) else '_choices'
+        setattr(source_field, choices_attr, SourceChoices(self.ct_choices))
         return source_field
 
     def validate(self, value, model_instance):
@@ -627,17 +600,21 @@ class ContentTypeSourceField(models.ForeignKey):
                 if isinstance(option_value, (list, tuple)):
                     # This is an optgroup, so look inside the group for options.
                     for optgroup_key, optgroup_value in option_value:
-                        if isinstance(optgroup_key, Mapping) and "value" in optgroup_key:
+                        try:
                             optgroup_key = optgroup_key["value"]
-                        if value == optgroup_key:
+                        except:
+                            pass
+                        if force_text(value) == force_text(optgroup_key):
                             return
                 else:
-                    if isinstance(option_key, Mapping) and "value" in option_key:
+                    try:
                         option_key = option_key["value"]
-                    if value == option_key:
+                    except:
+                        pass
+                    if force_text(value) == force_text(option_key):
                         return
             raise exceptions.ValidationError(
-                self.error_messages['invalid_choice'] % value)
+                self.error_messages['invalid_choice'] % {'value': value})
 
         if value is None and not self.null:
             raise exceptions.ValidationError(self.error_messages['null'])

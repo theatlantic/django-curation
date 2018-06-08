@@ -48,7 +48,7 @@ class GenericForeignKey(_GenericForeignKey):
         Identical to parent method except uses our proxy model of ContentType
         that works with generic contenttypes in multiple databases.
         """
-        from .models import ContentType
+        from django.contrib.contenttypes.models import ContentType
         if obj:
             using = obj._state.db
             return ContentType.objects.db_manager(using).get_for_model(obj, False)

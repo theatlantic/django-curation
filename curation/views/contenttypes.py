@@ -9,7 +9,7 @@ the django_content_type table.
 """
 
 from django import http
-from ..models import ContentType
+from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext as _

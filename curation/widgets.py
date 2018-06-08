@@ -1,4 +1,4 @@
-from collections import Mapping
+from itertools import chain
 
 from django.core.urlresolvers import reverse
 from django.forms import widgets
@@ -6,7 +6,13 @@ try:
     from django.forms.utils import flatatt
 except ImportError:
     from django.forms.util import flatatt
-from django.utils.encoding import force_unicode
+try:
+    from django.apps import apps
+except ImportError:
+    from django.db.models.loading import get_model
+else:
+    get_model = apps.get_model
+from django.utils.encoding import force_text
 from django.utils.html import conditional_escape
 
 
@@ -23,16 +29,50 @@ class SourceSelect(widgets.Select):
         return media
     media = property(_media)
 
+    def optgroups(self, name, value, attrs=None):
+        """Return a list of optgroups for this widget (Django 1.11)"""
+        # Unfortunately there isn't a better way to perform the override
+        # we previously did in the render_option() method in Django 1.11
+        # besides copying and modifying ChoiceWidget.optgroups
+        groups = []
+        has_selected = False
+        for index, (option_value, option_label) in enumerate(chain(self.choices)):
+            option_attrs = {}
+            try:
+                option_value.get('value')
+            except:
+                pass
+            else:
+                option_attrs = dict(option_value)
+                option_value = option_attrs.pop('value', None)
+
+            if option_value is None:
+                option_value = ''
+
+            selected = force_text(option_value) in value and has_selected is False
+            if selected is True and has_selected is False:
+                has_selected = True
+            option = self.create_option(
+                name, option_value, option_label, selected, index,
+                subindex=None, attrs=attrs)
+            option['attrs'].update(option_attrs)
+            groups.append((None, [option], index))
+
+        return groups
+
     def render_option(self, selected_choices, option_value, option_label):
-        if isinstance(option_value, Mapping) and 'value' in option_value:
-            value = force_unicode(option_value['value'])
-            if value in selected_choices:
+        try:
+            option_value.get('value')
+        except:
+            return super(SourceSelect, self).render_option(selected_choices,
+                option_value, option_label)
+        else:
+            option_attrs = dict(option_value)
+            option_value = force_text(option_attrs.get('value'))
+            if option_value in selected_choices:
                 selected_html = u' selected="selected"'
             else:
                 selected_html = ''
             return u'<option%s%s>%s</option>' % (
-                flatatt(option_value), selected_html,
-                conditional_escape(force_unicode(option_label)))
-        else:
-            return super(SourceSelect, self).render_option(selected_choices,
-                option_value, option_label)
+                flatatt(option_attrs), selected_html,
+                conditional_escape(force_text(option_label)))

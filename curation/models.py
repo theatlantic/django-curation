@@ -1,138 +1,7 @@
-import django
-from django.db import models, router
-from django.db.models.base import ModelBase
-from django.contrib.contenttypes import models as ct_models
+from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.encoding import smart_unicode
 
-from . import IS_DJANGO_GTE_1_11
 from .base import CuratedItemModelBase
-
-
-class ContentTypeManager(ct_models.ContentTypeManager):
-    """
-    Adds an optional keyword argument to get_for_model() and get_for_models(),
-    for_concrete_model. This was added in django 1.5, but providing for
-    compatibility with older installs.
-    """
-
-    def _get_opts(self, model, for_concrete_model):
-        if for_concrete_model:
-            model = model._meta.concrete_model
-        elif not IS_DJANGO_GTE_1_11 and model._deferred:
-            model = model._meta.proxy_for_model
-        return model._meta
-
-    def get_for_model(self, model, for_concrete_model=True):
-        """
-        Returns the ContentType object for a given model, creating the
-        ContentType if necessary. Lookups are cached so that subsequent lookups
-        for the same model don't hit the database.
-        """
-        opts = self._get_opts(model, for_concrete_model)
-        try:
-            ct = self._get_from_cache(opts)
-        except KeyError:
-            # Load or create the ContentType entry. The smart_unicode() is
-            # needed around opts.verbose_name_raw because name_raw might be a
-            # django.utils.functional.__proxy__ object.
-            defaults = (
-                None
-                if IS_DJANGO_GTE_1_11
-                else {'name': smart_unicode(opts.verbose_name_raw)}
-            )
-
-            ct, created = self.get_or_create(
-                app_label = opts.app_label,
-                model = opts.object_name.lower(),
-                defaults=defaults
-            )
-            self._add_to_cache(self.db, ct)
-
-        return ct
-
-    def get_for_models(self, *models, **kwargs):
-        """
-        Given *models, returns a dictionary mapping {model: content_type}.
-        """
-        for_concrete_models = kwargs.pop('for_concrete_models', True)
-        # Final results
-        results = {}
-        # models that aren't already in the cache
-        needed_app_labels = set()
-        needed_models = set()
-        needed_opts = set()
-        for model in models:
-            opts = self._get_opts(model, for_concrete_models)
-            try:
-                ct = self._get_from_cache(opts)
-            except KeyError:
-                needed_app_labels.add(opts.app_label)
-                needed_models.add(opts.object_name.lower())
-                needed_opts.add(opts)
-            else:
-                results[model] = ct
-        if needed_opts:
-            cts = self.filter(
-                app_label__in=needed_app_labels,
-                model__in=needed_models
-            )
-            for ct in cts:
-                model = ct.model_class()
-                if model._meta in needed_opts:
-                    results[model] = ct
-                    needed_opts.remove(model._meta)
-                self._add_to_cache(self.db, ct)
-        for opts in needed_opts:
-            # These weren't in the cache, or the DB, create them.
-            ct = self.create(
-                app_label=opts.app_label,
-                model=opts.object_name.lower(),
-                name=smart_unicode(opts.verbose_name_raw),
-            )
-            self._add_to_cache(self.db, ct)
-            results[ct.model_class()] = ct
-        return results
-
-class ContentTypeMetaclass(ModelBase):
-    """
-    Override the metaclass on our ContentType proxy model, so that isinstance
-    returns True if compared to a concrete ContentType.
-
-    If this is not done, a ValueError is thrown if the user passes a concrete
-    ContentType instance to a field with rel.to=curation.models.ContentType
-    """
-
-    def __instancecheck__(cls, instance):
-        return isinstance(instance, ct_models.ContentType)
-
-
-class ContentType(ct_models.ContentType):
-    """
-    A proxy model for django.contrib.contenttypes.models.ContentType which
-    overrides the get_object_for_this_type() method to allow it to work with
-    contenttypes that reside on multiple databases.
-    """
-
-    __metaclass__ = ContentTypeMetaclass
-
-    objects = ContentTypeManager()
-
-    class Meta:
-        # We only want to override get_object_for_this_type(), not create a
-        # new database table
-        proxy = True
-
-    def get_object_for_this_type(self, **kwargs):
-        """
-        This is identical to the super method, with the except that the super
-        passes self._state.db as the argument to the `using` method on the
-        manager, which fails if the model of the ContentType is in a different
-        database than the current (django_content_type) table.
-        """
-        model_cls = self.model_class()
-        using = router.db_for_read(model_cls)
-        return model_cls._default_manager.using(using).get(**kwargs)
 
 
 class CuratedGroup(models.Model):
@@ -176,14 +45,14 @@ class CuratedItem(models.Model):
     #: A dict that maps field names in the proxy model (the to=... model in the
     #: CuratedForeignKey) to field names in the current model which can
     #: override them (provided their value is not None or an empty string).
-    #: 
+    #:
     #: This takes the form, e.g.::
-    #: 
+    #:
     #:     field_overrides = {
     #:         'title': 'custom_title',
     #:         'status': 'custom_status',
     #:     }
-    #: 
+    #:
     #: Where ``custom_title`` and ``custom_status`` are fields in the
     #: CuratedItem model, and ``title`` and ``status`` are fields in the
     #: proxy model.
@@ -281,8 +150,7 @@ class CuratedItem(models.Model):
                                     "field": curated_field_name,
                                     "app_label": self._meta.app_label,
                                     "model_name": self._meta.object_name,
-                                    "fk_str": fk_str,
-                                })
+                                    "fk_str": fk_str})
 
-        raise AttributeError("'%s' object has no attribute '%s'" % \
+        raise AttributeError("'%s' object has no attribute '%s'" %
             (self.__class__.__name__, attr))
