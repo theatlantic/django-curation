@@ -178,7 +178,7 @@ class ContentTypeSourceChoices(object):
             ct_model_str = "%s.%s" % (ct_obj.app_label, ct_obj.model)
 
         try:
-            source_value, labeal = self.ct_lookup[ct_model_str]
+            source_value, label = self.ct_lookup[ct_model_str]
         except KeyError:
             try:
                 # Iterate through self to populate ct_lookup
