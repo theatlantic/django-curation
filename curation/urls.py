@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 import functools
 from django.contrib import admin
 from django.conf.urls import url
@@ -16,10 +17,10 @@ def wrap(view, cacheable=False):
 
 urlpatterns = [
     url(r'^content-type-list\.js$',
-        wrap(curation_views.get_content_types), # 'curation.views.get_content_types',
+        wrap(curation_views.get_content_types),  # 'curation.views.get_content_types',
         name="curation_content_type_list"),
     url(r'^lookup/related/$',
-        wrap(curation_views.related_lookup), # 'curation.views.related_lookup',
+        wrap(curation_views.related_lookup),  # 'curation.views.related_lookup',
         name="curation_related_lookup"),
     url(r'^r/(?P<content_type_id>\d+)/(?P<object_id>.+)/$',
         wrap(curation_views.shortcut),

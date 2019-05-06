@@ -1,13 +1,16 @@
+===============
 django-curation
-###############
+===============
 
 **django-curation** is a django module that provides a model used for
 curating other model objects and proxying their attributes.
 
+**Note** Version(s) >= 1.3 require Django >= 1.11. Version(s) >= 1.4 require Python 3.
+
 Example
 =======
 
-::
+.. code:: python
 
     from django.db import models
 
@@ -25,7 +28,7 @@ Example
         }
         objects = CuratedItemManager()
 
-        group = models.ForeignKey(CuratedPostGroup)
+        group = models.ForeignKey(CuratedPostGroup, on_delete=models.CASCADE)
         post = curation.fields.CuratedForeignKey(Post)
         custom_title = models.CharField(max_length=255, null=True, blank=True,
             db_column='title')

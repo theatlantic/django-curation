@@ -1,10 +1,7 @@
+from __future__ import absolute_import
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import signals
-
-try:
-    from django.contrib.contenttypes.fields import GenericForeignKey as _GenericForeignKey
-except ImportError:
-    from django.contrib.contenttypes.generic import GenericForeignKey as _GenericForeignKey
+from django.contrib.contenttypes.fields import GenericForeignKey as _GenericForeignKey
 
 
 class GenericForeignKey(_GenericForeignKey):

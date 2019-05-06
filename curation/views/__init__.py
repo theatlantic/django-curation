@@ -1,13 +1,9 @@
+from __future__ import absolute_import
 import textwrap
 import json
 
 from django.core.urlresolvers import reverse, NoReverseMatch
-try:
-    from django.apps import apps
-except ImportError:
-    from django.db.models.loading import get_model
-else:
-    get_model = apps.get_model
+from django.apps import apps
 from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.cache import never_cache
 
@@ -18,16 +14,17 @@ from django.contrib.contenttypes.models import ContentType
 from .contenttypes import shortcut
 
 
-ct_vals = ContentType.objects.all().values('pk', 'app_label', 'model')    
+ct_vals = ContentType.objects.all().values('pk', 'app_label', 'model')
 
 
 def get_label(f):
     get_label_func = getattr(f, "related_label", f.__unicode__)
     return get_label_func()
 
+
 def get_common_field_values(curated_item_cls, fk_obj):
     field_overrides = getattr(curated_item_cls, 'field_overrides', {})
-    override_field_names = field_overrides.keys()
+    override_field_names = list(field_overrides.keys())
     curated_fields = set([f.name for f in curated_item_cls._meta.fields])
     curated_fields = curated_fields.union(set(override_field_names))
     fk_fields = set([f.attname for f in fk_obj._meta.fields
@@ -43,7 +40,7 @@ def get_common_field_values(curated_item_cls, fk_obj):
         # as the value, so it can be converted to json.
         if hasattr(value, 'file') and hasattr(value.file, 'name'):
             value = value.file.name
- 
+
         if value is not u"" and value is not "":
             if field_name in field_overrides:
                 field_name = field_overrides[field_name]
@@ -67,7 +64,7 @@ def get_curated_item_for_request(request):
     except (TypeError, ValueError):
         return None
 
-    ct_model_cls = get_model(app_label, model_name)
+    ct_model_cls = apps.get_model(app_label, model_name)
     if ct_model_cls is None:
         return data
     ct_id = ContentType.objects.get_for_model(ct_model_cls, False)
@@ -144,7 +141,7 @@ content_types = None
 def get_content_types(request):
     if not (request.user.is_active and request.user.is_staff):
         return HttpResponseForbidden('"Permission denied"')
-    
+
     global content_types, related_lookup_url, shortcut_url
 
     if related_lookup_url is None:
