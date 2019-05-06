@@ -1,19 +1,10 @@
-import django
+from __future__ import absolute_import
 from django.core import exceptions, validators
 from django.db import models, connection
-try:
-    from django.apps import apps
-except ImportError:
-    from django.db.models.loading import get_model
-else:
-    get_model = apps.get_model
+from django.apps import apps
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.fields.related import ForeignKey
-try:
-    from django.db.models.fields.related import (
-        ReverseSingleRelatedObjectDescriptor as ForwardManyToOneDescriptor)
-except ImportError:
-    from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
+from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 from django import forms
 from django.utils.encoding import force_text
 from django.utils.functional import cached_property, lazy
@@ -23,9 +14,6 @@ from .generic import GenericForeignKey
 from .widgets import SourceSelect
 
 from django.contrib.contenttypes.models import ContentType
-
-
-IS_DJANGO_GTE_1_11 = (django.VERSION >= (1, 11))
 
 
 def get_content_type_id_for_model(model):
@@ -277,10 +265,10 @@ class ContentTypeSourceChoices(object):
                 # that we should treat it the same as we would 'self.field_name'
                 if field_name and model_cls:
                     try:
-                        ct_model = get_model(app_label, model_name, False)
+                        ct_model = apps.get_model(app_label, model_name, False)
                     except TypeError:
                         # Django 1.7+
-                        ct_model = get_model(app_label, model_name)
+                        ct_model = apps.get_model(app_label, model_name)
                     if ct_model._meta.proxy and ct_model._meta.concrete_model == model_cls:
                         ct_id = lazy_get_content_type_id_for_model(ct_model)
                         app_label = 'self'
@@ -299,7 +287,7 @@ class ContentTypeSourceChoices(object):
             # If the relation isn't of the form 'self.field_name', grab the
             # content_type_id for the app_label and model_name
             if app_label != 'self':
-                ct_model = get_model(app_label, model_name)
+                ct_model = apps.get_model(app_label, model_name)
                 ct_id = lazy_get_content_type_id_for_model(ct_model)
 
             ct_value['value'] = ct_id
@@ -320,7 +308,7 @@ class ContentTypeSourceChoices(object):
         """
         model_cls = self.field.model
         opts = model_cls._meta
-        private_fields = opts.private_fields if IS_DJANGO_GTE_1_11 else opts.virtual_fields
+        private_fields = opts.private_fields
         fields = opts.local_fields + opts.local_many_to_many + private_fields
         try:
             [f for f in fields if f.name == field_name][0]
@@ -410,7 +398,7 @@ class ContentTypeIdDescriptor(object):
 
         instance.__dict__[self.field.attname] = value
 
-        if isinstance(value, (int, long)):
+        if isinstance(value, six.integer_types):
             value = ContentType.objects.get_for_id(value)
         self.__dict__['ct_descriptor'].__set__(instance, value)
 
@@ -560,7 +548,7 @@ class ContentTypeSourceField(models.ForeignKey):
                 ContentTypeIdDescriptor(content_type_descriptor))
 
         if hasattr(cls._meta, "duplicate_targets"):  # Django<1.5
-            if isinstance(self.rel.to, basestring):
+            if isinstance(self.rel.to, six.string_types):
                 target = self.rel.to
             else:
                 target = self.rel.to._meta.db_table
@@ -578,7 +566,7 @@ class ContentTypeSourceField(models.ForeignKey):
         if not self.source_field_name:
             return None
         source_field = self.model._meta.get_field(self.source_field_name)
-        choices_attr = 'choices' if django.VERSION > (1, 11) else '_choices'
+        choices_attr = 'choices'
         setattr(source_field, choices_attr, SourceChoices(self.ct_choices))
         return source_field
 
@@ -594,7 +582,7 @@ class ContentTypeSourceField(models.ForeignKey):
             # Skip validation for non-editable fields.
             return
 
-        choices = self.choices if IS_DJANGO_GTE_1_11 else self._choices
+        choices = self.choices
         if choices and value:
             for option_key, option_value in choices:
                 if isinstance(option_value, (list, tuple)):

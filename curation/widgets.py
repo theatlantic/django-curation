@@ -1,17 +1,9 @@
+from __future__ import absolute_import
 from itertools import chain
 
 from django.core.urlresolvers import reverse
 from django.forms import widgets
-try:
-    from django.forms.utils import flatatt
-except ImportError:
-    from django.forms.util import flatatt
-try:
-    from django.apps import apps
-except ImportError:
-    from django.db.models.loading import get_model
-else:
-    get_model = apps.get_model
+from django.forms.utils import flatatt
 from django.utils.encoding import force_text
 from django.utils.html import conditional_escape
 

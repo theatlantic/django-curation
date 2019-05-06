@@ -1,4 +1,6 @@
+from __future__ import absolute_import
 from django.db import models
+from django.utils import six
 from django.core.exceptions import ObjectDoesNotExist
 
 from .base import CuratedItemModelBase
@@ -30,7 +32,7 @@ class CuratedItemManager(models.Manager):
         return self.filter(group__slug=slug)
 
 
-class CuratedItem(models.Model):
+class CuratedItem(six.with_metaclass(CuratedItemModelBase, models.Model)):
     """
     Abstract class representing an item in a curated group.
 
@@ -39,8 +41,6 @@ class CuratedItem(models.Model):
 
         post = curation.fields.CuratedForeignKey(Post)
     """
-
-    __metaclass__ = CuratedItemModelBase
 
     #: A dict that maps field names in the proxy model (the to=... model in the
     #: CuratedForeignKey) to field names in the current model which can
