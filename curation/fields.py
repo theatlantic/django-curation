@@ -20,7 +20,7 @@ def get_content_type_id_for_model(model):
     return ContentType.objects.get_for_model(model, False).pk
 
 
-lazy_get_content_type_id_for_model = lazy(get_content_type_id_for_model, str)
+lazy_get_content_type_id_for_model = lazy(get_content_type_id_for_model, int)
 
 
 class CuratedRelatedField(object):
