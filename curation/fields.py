@@ -162,7 +162,7 @@ class ContentTypeSourceChoices(object):
         if force_text(ct_model_str).isdigit():
             ct_id = int(force_text(ct_model_str))
         if isinstance(ct_id, six.integer_types):
-            ct_obj = ContentType.objects.get(pk=ct_id)
+            ct_obj = ContentType.objects.get_for_id(ct_id)
             ct_model_str = "%s.%s" % (ct_obj.app_label, ct_obj.model)
 
         try:
@@ -397,6 +397,9 @@ class ContentTypeIdDescriptor(object):
                 return
 
         instance.__dict__[self.field.attname] = value
+
+        if force_text(value).isdigit():
+            value = int(force_text(value))
 
         if isinstance(value, six.integer_types):
             value = ContentType.objects.get_for_id(value)
