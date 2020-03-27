@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import textwrap
 import json
 
-from django.core.urlresolvers import reverse, NoReverseMatch
+from django.urls import reverse, NoReverseMatch
 from django.apps import apps
 from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.cache import never_cache

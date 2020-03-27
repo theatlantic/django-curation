@@ -5,10 +5,10 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-curation',
-    version="1.3.3",
+    version="2.0.0",
     description='A model used for curating other models and proxying their attributes',
     author='The Atlantic',
-    author_email='atmoprogrammers@theatlantic.com',
+    author_email='programmers@theatlantic.com',
     url='https://github.com/theatlantic/django-curation',
     packages=find_packages(),
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, <4',
@@ -18,6 +18,7 @@ setup(
         'Operating System :: OS Independent',
         'Framework :: Django',
         'Framework :: Django :: 1.11',
+        'Framework :: Django :: 2.0',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
