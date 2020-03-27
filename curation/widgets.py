@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 from itertools import chain
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.forms import widgets
 from django.forms.utils import flatatt
 from django.utils.encoding import force_text
