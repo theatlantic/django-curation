@@ -6,6 +6,7 @@ from django.core.urlresolvers import reverse, NoReverseMatch
 from django.apps import apps
 from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.cache import never_cache
+from django.utils import six
 
 from django.contrib.contenttypes.models import ContentType
 
@@ -18,8 +19,10 @@ ct_vals = ContentType.objects.all().values('pk', 'app_label', 'model')
 
 
 def get_label(f):
-    get_label_func = getattr(f, "related_label", f.__unicode__)
-    return get_label_func()
+    if getattr(f, "related_label", None):
+        return f.related_label()
+    else:
+        return six.text_type(f)
 
 
 def get_common_field_values(curated_item_cls, fk_obj):
