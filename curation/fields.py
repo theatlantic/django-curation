@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 from django.core import exceptions, validators
-from django.db import models, connection
+from django.db import models
 from django.apps import apps
 from django.db.models.fields import FieldDoesNotExist
 from django.db.models.fields.related import ForeignKey
@@ -189,7 +189,7 @@ class ContentTypeSourceChoices(object):
         """
         Look up the content_type_id associated with the source value `source_value`
         """
-        if source_value is None or force_text(source_value) is u"":
+        if source_value is None or force_text(source_value) == u"":
             return None
 
         try:

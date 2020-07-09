@@ -12,7 +12,7 @@ from django.contrib.contenttypes.models import ContentType
 
 # The version of django.contrib.contenttypes.views.shortcut with a bug fixed
 # for multi-db setups
-from .contenttypes import shortcut
+from .contenttypes import shortcut  # noqa
 
 
 ct_vals = ContentType.objects.all().values('pk', 'app_label', 'model')
@@ -44,11 +44,12 @@ def get_common_field_values(curated_item_cls, fk_obj):
         if hasattr(value, 'file') and hasattr(value.file, 'name'):
             value = value.file.name
 
-        if value is not u"" and value is not "":
+        if value != u"" and value != "":
             if field_name in field_overrides:
                 field_name = field_overrides[field_name]
             fk_data[field_name] = value
     return fk_data
+
 
 def get_curated_item_for_request(request):
     data = {}
@@ -109,6 +110,7 @@ def get_curated_item_for_request(request):
         })
     return [data]
 
+
 def empty_json(obj):
     """
     If we don't know how to serialize an object, just return `None`
@@ -116,6 +118,7 @@ def empty_json(obj):
     """
 
     return None
+
 
 @never_cache
 def related_lookup(request):
@@ -154,7 +157,7 @@ def get_content_types(request):
         shortcut_url = reverse('curation_shortcut', kwargs={
             'content_type_id': 0,
             'object_id': 0,
-        }).replace('/0/0', '/{0}/{1}');
+        }).replace('/0/0', '/{0}/{1}')
 
     if content_types is None:
         content_types = {}
@@ -166,6 +169,7 @@ def get_content_types(request):
                 pass
             content_types[ct['pk']] = ct
 
+    # flake8: noqa: W605
     ct_js = textwrap.dedent(u"""
         var DJCURATION = (typeof window.DJCURATION != "undefined")
                        ? DJCURATION : {};
