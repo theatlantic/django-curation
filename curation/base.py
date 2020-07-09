@@ -9,6 +9,7 @@ class CuratedItemModelBase(ModelBase):
     Overrides ModelBase to check whether a CuratedForeignKey is defined on
     the model. If not, throw a TypeError.
     """
+
     def __new__(cls, name, bases, attrs):
         # The cls in the method class isn't a typo, that's just how `__new__`
         # works with super()
@@ -34,6 +35,5 @@ class CuratedItemModelBase(ModelBase):
         if not hasattr(model_cls._meta, '_curated_proxy_field_name'):
             raise TypeError("Model %r has no CuratedForeignKey fields. All "
                             "subclasses of CuratedItem must define exactly "
-                            "one CuratedForeignKey field." %
-                                model_cls._meta.object_name)
+                            "one CuratedForeignKey field." % model_cls._meta.object_name)
         return model_cls
