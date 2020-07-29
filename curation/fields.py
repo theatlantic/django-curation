@@ -1,19 +1,16 @@
-from __future__ import absolute_import
 from django.core import exceptions, validators
 from django.db import models
 from django.apps import apps
-from django.db.models.fields import FieldDoesNotExist
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models.fields.related import ForeignKey
 from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 from django import forms
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.functional import cached_property, lazy
-from django.utils import six
+from django.contrib.contenttypes.models import ContentType
 
 from .generic import GenericForeignKey
 from .widgets import SourceSelect
-
-from django.contrib.contenttypes.models import ContentType
 
 
 def get_content_type_id_for_model(model):
@@ -156,12 +153,12 @@ class ContentTypeSourceChoices(object):
         Look up the source_value associated with a content_type string
         """
         if ct_model_str is None:
-            return u""
+            return ""
 
         ct_id = ct_model_str
-        if force_text(ct_model_str).isdigit():
-            ct_id = int(force_text(ct_model_str))
-        if isinstance(ct_id, six.integer_types):
+        if force_str(ct_model_str).isdigit():
+            ct_id = int(force_str(ct_model_str))
+        if isinstance(ct_id, int):
             ct_obj = ContentType.objects.get_for_id(ct_id)
             ct_model_str = "%s.%s" % (ct_obj.app_label, ct_obj.model)
 
@@ -175,9 +172,9 @@ class ContentTypeSourceChoices(object):
             except KeyError:
                 errors = {}
                 errors[self.field.name] = (
-                    u"Field %(field_name)s on %(app_label)s.%(model_name)s "
-                    u"does not have a ct_choice item with "
-                    u"ContentType string = %(ct_model_str)s") % {
+                    "Field %(field_name)s on %(app_label)s.%(model_name)s "
+                    "does not have a ct_choice item with "
+                    "ContentType string = %(ct_model_str)s") % {
                         'field_name': self.field.source_field_name,
                         'app_label': self.field.model._meta.app_label,
                         'model_name': self.field.model._meta.object_name,
@@ -189,7 +186,7 @@ class ContentTypeSourceChoices(object):
         """
         Look up the content_type_id associated with the source value `source_value`
         """
-        if source_value is None or force_text(source_value) == u"":
+        if source_value is None or force_str(source_value) == "":
             return None
 
         try:
@@ -202,9 +199,9 @@ class ContentTypeSourceChoices(object):
             except KeyError:
                 errors = {}
                 errors[self.field.source_field_name] = (
-                    u"Field %(field_name)s on %(app_label)s.%(model_name)s "
-                    u"does not have a ct_choice item with "
-                    u"source_value=%(source_value)r ") % {
+                    "Field %(field_name)s on %(app_label)s.%(model_name)s "
+                    "does not have a ct_choice item with "
+                    "source_value=%(source_value)r ") % {
                         'field_name': self.field.name,
                         'app_label': self.field.model._meta.app_label,
                         'model_name': self.field.model._meta.object_name,
@@ -216,7 +213,7 @@ class ContentTypeSourceChoices(object):
         model_cls = getattr(self.field, 'model', None)
         for ct_choice in self.ct_choices:
             # We use a dict for the option value so we can add extra attributes
-            ct_value = {'class': u'curated-content-type-option', 'value': None}
+            ct_value = {'class': 'curated-content-type-option', 'value': None}
             # Grab relation and label from the first two items in the tuple
             relation, label = ct_choice[0:2]
 
@@ -264,11 +261,7 @@ class ContentTypeSourceChoices(object):
                 # model that the field is defined on (which would indicate
                 # that we should treat it the same as we would 'self.field_name'
                 if field_name and model_cls:
-                    try:
-                        ct_model = apps.get_model(app_label, model_name, False)
-                    except TypeError:
-                        # Django 1.7+
-                        ct_model = apps.get_model(app_label, model_name)
+                    ct_model = apps.get_model(app_label, model_name, False)
                     if ct_model._meta.proxy and ct_model._meta.concrete_model == model_cls:
                         ct_id = lazy_get_content_type_id_for_model(ct_model)
                         app_label = 'self'
@@ -279,7 +272,7 @@ class ContentTypeSourceChoices(object):
                     self.check_field_exists(field_name)
                     # We access this value after render with javascript
                     ct_value['data-field-name'] = field_name
-                    ct_value['class'] += u' curated-content-type-ptr'
+                    ct_value['class'] += ' curated-content-type-ptr'
                     if ct_model is None:
                         ct_model = model_cls
                         ct_id = lazy_get_content_type_id_for_model(ct_model)
@@ -310,9 +303,7 @@ class ContentTypeSourceChoices(object):
         opts = model_cls._meta
         private_fields = opts.private_fields
         fields = opts.local_fields + opts.local_many_to_many + private_fields
-        try:
-            [f for f in fields if f.name == field_name][0]
-        except IndexError:
+        if not any(f for f in fields if f.name == field_name):
             raise FieldDoesNotExist("%s has no field named '%s'" % (
                 opts.object_name, field_name))
 
@@ -339,7 +330,7 @@ class ContentTypeSourceDescriptor(ForwardManyToOneDescriptor):
                 value = int("%s" % value)
             except:
                 pass
-        if isinstance(value, six.integer_types):
+        if isinstance(value, int):
             value = ContentType.objects.get_for_id(value)
 
         super(ContentTypeSourceDescriptor, self).__set__(instance, value)
@@ -398,10 +389,11 @@ class ContentTypeIdDescriptor(object):
 
         instance.__dict__[self.field.attname] = value
 
-        if force_text(value).isdigit():
-            value = int(force_text(value))
+        text = force_str(value)
+        if text.isdigit():
+            value = int(text)
 
-        if isinstance(value, six.integer_types):
+        if isinstance(value, int):
             value = ContentType.objects.get_for_id(value)
         self.__dict__['ct_descriptor'].__set__(instance, value)
 
@@ -474,7 +466,7 @@ class ContentTypeChoiceField(forms.TypedChoiceField):
         Since we have store the choices values as dictionaries, we need
         to override this method to prevent a ValidationError
         """
-        value = force_text(value)
+        value = force_str(value)
         for k, v in self.choices:
             if isinstance(v, (list, tuple)):
                 # This is an optgroup, so look inside the group for options
@@ -483,14 +475,14 @@ class ContentTypeChoiceField(forms.TypedChoiceField):
                         k2 = k2['value']
                     except:
                         pass
-                    if value == force_text(k2):
+                    if value == force_str(k2):
                         return True
             else:
                 try:
                     k = k['value']
                 except:
                     pass
-                if value == force_text(k):
+                if value == force_str(k):
                     return True
         return False
 
@@ -550,15 +542,7 @@ class ContentTypeSourceField(models.ForeignKey):
         setattr(cls, self.attname,
                 ContentTypeIdDescriptor(content_type_descriptor))
 
-        if hasattr(cls._meta, "duplicate_targets"):  # Django<1.5
-            if isinstance(self.rel.to, six.string_types):
-                target = self.rel.to
-            else:
-                target = self.rel.to._meta.db_table
-            cls._meta.duplicate_targets[self.column] = (target, "o2m")
-
-        # Get source field, if the field name was passed in init, and set its
-        # choices
+        # Get source field, if the field name was passed in init, and set its choices
         if self.source_field_name is not None:
             # Add / Replace descriptor for the source field that auto-updates
             # the content-type field
@@ -595,14 +579,14 @@ class ContentTypeSourceField(models.ForeignKey):
                             optgroup_key = optgroup_key["value"]
                         except:
                             pass
-                        if force_text(value) == force_text(optgroup_key):
+                        if force_str(value) == force_str(optgroup_key):
                             return
                 else:
                     try:
                         option_key = option_key["value"]
                     except:
                         pass
-                    if force_text(value) == force_text(option_key):
+                    if force_str(value) == force_str(option_key):
                         return
             raise exceptions.ValidationError(
                 self.error_messages['invalid_choice'] % {'value': value})

@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import functools
 from django.contrib import admin
 from django.conf.urls import url
