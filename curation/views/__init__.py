@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 import textwrap
 import json
 
@@ -6,7 +5,6 @@ from django.urls import reverse, NoReverseMatch
 from django.apps import apps
 from django.http import HttpResponse, HttpResponseForbidden
 from django.views.decorators.cache import never_cache
-from django.utils import six
 
 from django.contrib.contenttypes.models import ContentType
 
@@ -22,7 +20,7 @@ def get_label(f):
     if getattr(f, "related_label", None):
         return f.related_label()
     else:
-        return six.text_type(f)
+        return str(f)
 
 
 def get_common_field_values(curated_item_cls, fk_obj):
@@ -44,7 +42,7 @@ def get_common_field_values(curated_item_cls, fk_obj):
         if hasattr(value, 'file') and hasattr(value.file, 'name'):
             value = value.file.name
 
-        if value != u"" and value != "":
+        if value != "" and value != "":
             if field_name in field_overrides:
                 field_name = field_overrides[field_name]
             fk_data[field_name] = value
@@ -170,7 +168,7 @@ def get_content_types(request):
             content_types[ct['pk']] = ct
 
     # flake8: noqa: W605
-    ct_js = textwrap.dedent(u"""
+    ct_js = textwrap.dedent("""
         var DJCURATION = (typeof window.DJCURATION != "undefined")
                        ? DJCURATION : {};
         DJCURATION.CONTENT_TYPES = %s;

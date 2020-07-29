@@ -2,14 +2,17 @@
 django-curation
 ===============
 
+.. image:: https://travis-ci.org/theatlantic/django-curation.svg?branch=master
+    :target: https://travis-ci.org/theatlantic/django-curation
+
 **django-curation** is a django module that provides a model used for
 curating other model objects and proxying their attributes.
 
 .. note::
 
-    Version(s) >= 1.3 requires Django >= 1.11, < 2.0.
+    Version(s) < 2.0 requires Django >= 1.11, < 2.0.
 
-    Version(s) >= 1.4 require Python 3, Django >= 2.0.
+    Version(s) >= 2.0 require Python 3, Django >= 2.0.
 
 Example
 =======

@@ -1,10 +1,9 @@
-from __future__ import absolute_import
 from itertools import chain
 
 from django.urls import reverse
 from django.forms import widgets
 from django.forms.utils import flatatt
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.html import conditional_escape
 
 
@@ -41,7 +40,7 @@ class SourceSelect(widgets.Select):
             if option_value is None:
                 option_value = ''
 
-            selected = force_text(option_value) in value and has_selected is False
+            selected = force_str(option_value) in value and has_selected is False
             if selected is True and has_selected is False:
                 has_selected = True
             option = self.create_option(
@@ -60,11 +59,11 @@ class SourceSelect(widgets.Select):
                 option_value, option_label)
         else:
             option_attrs = dict(option_value)
-            option_value = force_text(option_attrs.get('value'))
+            option_value = force_str(option_attrs.get('value'))
             if option_value in selected_choices:
-                selected_html = u' selected="selected"'
+                selected_html = ' selected="selected"'
             else:
                 selected_html = ''
-            return u'<option%s%s>%s</option>' % (
+            return '<option%s%s>%s</option>' % (
                 flatatt(option_attrs), selected_html,
-                conditional_escape(force_text(option_label)))
+                conditional_escape(force_str(option_label)))

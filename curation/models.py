@@ -1,6 +1,4 @@
-from __future__ import absolute_import
 from django.db import models
-from django.utils import six
 from django.core.exceptions import ObjectDoesNotExist
 
 from .base import CuratedItemModelBase
@@ -17,8 +15,9 @@ class CuratedGroup(models.Model):
         verbose_name = "Curated Content"
         verbose_name_plural = "Curated Content"
 
-    def __unicode__(self):
-        return u"%s" % self.name
+
+    def __str__(self):
+        return self.name
 
 
 class CuratedItemManager(models.Manager):
@@ -32,7 +31,7 @@ class CuratedItemManager(models.Manager):
         return self.filter(group__slug=slug)
 
 
-class CuratedItem(six.with_metaclass(CuratedItemModelBase, models.Model)):
+class CuratedItem(models.Model, metaclass=CuratedItemModelBase):
     """
     Abstract class representing an item in a curated group.
 
@@ -136,15 +135,15 @@ class CuratedItem(six.with_metaclass(CuratedItemModelBase, models.Model)):
                                              if f.name == curated_field_name][0]
                             fk = getattr(self, curated_field.fk_field)
                             if fk:
-                                fk_str = u" and pk=%d" % fk
+                                fk_str = " and pk=%d" % fk
                             else:
-                                fk_str = u""
+                                fk_str = ""
 
                             raise self._proxy_model.DoesNotExist((
-                                u"CuratedGenericForeignKey field %(field)r "
-                                u"on %(app_label)s.%(model_name)s with model "
-                                u"'%(rel_app_label)s.%(rel_model_name)s'"
-                                u"%(fk_str)s does not exist") % {
+                                "CuratedGenericForeignKey field %(field)r "
+                                "on %(app_label)s.%(model_name)s with model "
+                                "'%(rel_app_label)s.%(rel_model_name)s'"
+                                "%(fk_str)s does not exist") % {
                                     "rel_app_label": proxy_opts.app_label,
                                     "rel_model_name": proxy_opts.object_name,
                                     "field": curated_field_name,

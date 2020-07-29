@@ -1,0 +1,17 @@
+# Python versions for matrix
+language: python
+dist: xenial
+
+matrix:
+  include:
+    - { python: 3.7, env: TOXENV=py-dj20 }
+    - { python: 3.7, env: TOXENV=py-dj21 }
+    - { python: 3.7, env: TOXENV=py-dj22 }
+    - { python: 3.7, env: TOXENV=py-dj30 }
+    - { python: 3.7, env: TOXENV=py-dj31 }
+
+cache:
+  pip: true
+
+install: pip install tox-travis
+script: tox
