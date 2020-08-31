@@ -9,16 +9,16 @@ from django.utils.html import conditional_escape
 
 class SourceSelect(widgets.Select):
 
-    def _media(self):
-        media = widgets.Media()
-        media.add_js((
-            reverse('curation_content_type_list'),
-            'curation/curated_related_generic.js',
-            'curation/curation.js',))
-        media.add_css({
-                'all': ('curation/curation.css',)})
-        return media
-    media = property(_media)
+    @property
+    def media(self):
+        media = super(SourceSelect, self).media
+        return media + widgets.Media(
+            js=(
+                'admin/js/jquery.init.js',
+                reverse('curation_content_type_list'),
+                'curation/curated_related_generic.js',
+                'curation/curation.js',),
+            css={'all': ('curation/curation.css',)})
 
     def optgroups(self, name, value, attrs=None):
         """Return a list of optgroups for this widget (Django 1.11)"""
