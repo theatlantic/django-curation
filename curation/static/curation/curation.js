@@ -116,10 +116,10 @@
             if ($option.attr('value') == selectValue) {
                 activePtrFieldName = ptrFieldName;
                 if (toggleVisibility) {
-                    $ptrField.closest('.row,.grp-row').andSelf().show();
+                    $ptrField.closest('.row,.grp-row').addBack().show();
                 }
             } else if (toggleVisibility) {
-                $ptrField.val('').closest('.row,.grp-row').andSelf().hide();
+                $ptrField.val('').closest('.row,.grp-row').addBack().hide();
             }
         });
         var $fkField = $select.curationFkField();
