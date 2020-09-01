@@ -59,7 +59,8 @@ class CuratedRelatedField(object):
         if current_proxy_model is related_cls:
             return
         skips = ('DoesNotExist', 'MultipleObjectsReturned', '__doc__', '_meta',
-                 '__module__', '_base_manager', '_default_manager', 'objects',)
+                 '__module__', '_base_manager', '_default_manager', 'objects',
+                 instance._meta._curated_proxy_field_name)
         opts = related_cls._meta
         proxy_attrs = set([f.name for f in (opts.fields + opts.many_to_many)])
         proxy_attrs = proxy_attrs.union([k for k in related_cls.__dict__ if k not in skips])
