@@ -167,8 +167,7 @@ def get_content_types(request):
                 pass
             content_types[ct['pk']] = ct
 
-    # flake8: noqa: W605
-    ct_js = textwrap.dedent("""
+    ct_js = textwrap.dedent(r"""
         var DJCURATION = (typeof window.DJCURATION != "undefined")
                        ? DJCURATION : {};
         DJCURATION.CONTENT_TYPES = %s;
