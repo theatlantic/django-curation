@@ -558,6 +558,11 @@ class ContentTypeSourceField(models.ForeignKey):
         setattr(source_field, choices_attr, SourceChoices(self.ct_choices))
         return source_field
 
+    def _check_choices(self):
+        # This field's choices iterable is generated in code, so the field
+        # check is irrelevant
+        return []
+
     def validate(self, value, model_instance):
         """
         Validates value and throws ValidationError. Subclasses should override
