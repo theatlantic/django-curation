@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-curation',
-    version="2.0.0b1",
+    version="2.0.0b2",
     description='A model used for curating other models and proxying their attributes',
     author='The Atlantic',
     author_email='programmers@theatlantic.com',
