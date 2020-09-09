@@ -35,16 +35,31 @@ class ModelB(models.Model):
     b_field = models.CharField(max_length=20)
 
 
-class Handler(models.Model):
+class Handler(CuratedItem):
     CONTENT_TYPES = (
         ('tests.Post', 'Post', 'post'),
-        ('tests.ModelA', 'Model A', 'moda'),
-        ('tests.ModelB', 'Model B', 'modb'),
+        (ModelA, 'Model A', 'moda'),
+        ('ModelB', 'Model B', 'modb'),
+        ('self.url', 'URL', 'url'),
     )
 
-    content_type = ContentTypeSourceField(ct_choices=CONTENT_TYPES, null=True, blank=True)
+    content_type = ContentTypeSourceField(
+        ct_choices=CONTENT_TYPES,
+        source_field='source',
+        null=True, blank=True)
     object_id = models.PositiveIntegerField()
     content_object = CuratedGenericForeignKey('content_type', 'object_id')
+    source = models.CharField(max_length=8, null=True, blank=True)
+
+    field_overrides = {
+        'title': 'custom_title',
+    }
+
+    custom_title = models.CharField(max_length=50, blank=True)
+    url = models.URLField(null=True, blank=True, max_length=500)
+
+    class Meta:
+        app_label = 'tests'
 
     def __str__(self):
         try:

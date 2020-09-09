@@ -258,6 +258,8 @@ class ContentTypeSourceChoices(object):
                 app_label = relation._meta.app_label
                 model_name = relation._meta.object_name
             else:
+                if not app_label:
+                    app_label = model_cls._meta.app_label
                 # Check if the model pointed to is a proxy model of the
                 # model that the field is defined on (which would indicate
                 # that we should treat it the same as we would 'self.field_name'
@@ -351,7 +353,7 @@ class ContentTypeSourceDescriptor(ForwardManyToOneDescriptor):
                     return
 
             # Check if the field already matches to avoid infinite loop
-            curr_source_val = getattr(instance, source_field.name, None)
+            curr_source_val = instance.__dict__.get(source_field.name)
             if source_val != curr_source_val:
                 setattr(instance, source_field.name, source_val)
 
