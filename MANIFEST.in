@@ -1,2 +1,3 @@
 include README.md README.rst MANIFEST.in LICENSE
 recursive-include curation/static *
+recursive-exclude tests *

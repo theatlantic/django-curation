@@ -5,12 +5,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='django-curation',
-    version="2.0.0b2",
+    version="2.0.0b3",
     description='A model used for curating other models and proxying their attributes',
     author='The Atlantic',
     author_email='programmers@theatlantic.com',
     url='https://github.com/theatlantic/django-curation',
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests", "tests.*")),
     python_requires='!=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4*, <4',
     classifiers=[
         'Environment :: Web Environment',
