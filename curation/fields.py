@@ -14,7 +14,14 @@ from .widgets import SourceSelect
 
 
 def get_content_type_id_for_model(model):
-    return ContentType.objects.get_for_model(model, False).pk
+    value = ContentType.objects.get_for_model(model, False).pk
+    # Normalize to a string so deconstruct comparisons are stable for
+    # calculating migrations
+    try:
+        value = str(int(value))
+    except:
+        pass
+    return value
 
 
 lazy_get_content_type_id_for_model = lazy(get_content_type_id_for_model, int)
@@ -285,13 +292,6 @@ class ContentTypeSourceChoices(object):
             if app_label != 'self':
                 ct_model = apps.get_model(app_label, model_name)
                 ct_id = lazy_get_content_type_id_for_model(ct_model)
-
-            # Normalize 'value' to a string so deconstruct comparisons are
-            # stable for calculating migrations
-            try:
-                ct_id = str(int(ct_id))
-            except:
-                pass
 
             ct_value['value'] = ct_id
             ct_model_str = "%s.%s" % (ct_model._meta.app_label, ct_model._meta.model_name)
