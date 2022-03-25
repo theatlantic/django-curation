@@ -286,6 +286,13 @@ class ContentTypeSourceChoices(object):
                 ct_model = apps.get_model(app_label, model_name)
                 ct_id = lazy_get_content_type_id_for_model(ct_model)
 
+            # Normalize 'value' to a string so deconstruct comparisons are
+            # stable for calculating migrations
+            try:
+                ct_id = str(int(ct_id))
+            except:
+                pass
+
             ct_value['value'] = ct_id
             ct_model_str = "%s.%s" % (ct_model._meta.app_label, ct_model._meta.model_name)
 
