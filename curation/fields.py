@@ -1,3 +1,6 @@
+from collections.abc import Iterable
+from itertools import islice, zip_longest
+
 from django.core import exceptions, validators
 from django.db import models
 from django.apps import apps
@@ -11,6 +14,33 @@ from django.contrib.contenttypes.models import ContentType
 
 from .generic import GenericForeignKey
 from .widgets import SourceSelect
+
+try:
+    from django.utils.choices import BaseChoiceIterator
+except ImportError:
+    class BaseChoiceIterator:
+        """Base class for lazy iterators for choices."""
+
+        def __eq__(self, other):
+            if isinstance(other, Iterable):
+                return all(a == b for a, b in zip_longest(self, other, fillvalue=object()))
+            return super().__eq__(other)
+
+        def __getitem__(self, index):
+            if isinstance(index, slice) or index < 0:
+                # Suboptimally consume whole iterator to handle slices and negative
+                # indexes.
+                return list(self)[index]
+            try:
+                return next(islice(self, index, index + 1))
+            except StopIteration:
+                raise IndexError("index out of range") from None
+
+        def __iter__(self):
+            raise NotImplementedError(
+                "BaseChoiceIterator subclasses must implement __iter__()."
+            )
+
 
 
 def get_content_type_id_for_model(model):
@@ -109,7 +139,7 @@ class CuratedGenericForeignKey(CuratedRelatedField, GenericForeignKey):
     pass
 
 
-class ContentTypeIdChoices(object):
+class ContentTypeIdChoices(BaseChoiceIterator):
     """
     Iterable used for ContentTypeSourceField's `choices` keyword argument
     """
@@ -136,7 +166,7 @@ class SourceChoices(ContentTypeIdChoices):
             yield (source_value, label)
 
 
-class ContentTypeSourceChoices(object):
+class ContentTypeSourceChoices(BaseChoiceIterator):
 
     # Sentinel value if a given choice in ct_choices is a 2-tuple and so does
     # not have a source_value
@@ -543,6 +573,9 @@ class ContentTypeSourceField(models.ForeignKey):
         self.source_field_name = kwargs.pop('source_field', None)
         kwargs.setdefault('on_delete', models.CASCADE)
         super(ContentTypeSourceField, self).__init__('contenttypes.ContentType', *args, **kwargs)
+
+    def get_cache_name(self):
+        return self.name
 
     def contribute_to_class(self, cls, name):
         super(models.ForeignKey, self).contribute_to_class(cls, name)
